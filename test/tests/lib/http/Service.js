@@ -147,8 +147,8 @@ test.method (Service.TestService, "dispatch")
 test.method (Service.TestService, "run")
     .should ("select the endpoint and run the handler")
         .given (nit.new ("http.Context",
-            nit.new ("http.MockIncomingMessage", "POST", "/resources"),
-            nit.new ("http.MockServerResponse")
+            nit.new ("http.mocks.IncomingMessage", "POST", "/resources"),
+            nit.new ("http.mocks.ServerResponse")
         ))
         .before (function ()
         {
@@ -175,8 +175,8 @@ test.method (Service.TestService, "run")
 
     .should ("just return the context if no matching endpoint was found")
         .given (nit.new ("http.Context",
-            nit.new ("http.MockIncomingMessage", "GET", "/resources"),
-            nit.new ("http.MockServerResponse")
+            nit.new ("http.mocks.IncomingMessage", "GET", "/resources"),
+            nit.new ("http.mocks.ServerResponse")
         ))
         .before (function ()
         {

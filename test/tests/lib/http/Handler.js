@@ -1,5 +1,5 @@
-const MockIncomingMessage = nit.require ("http.MockIncomingMessage");
-const MockServerResponse = nit.require ("http.MockServerResponse");
+const MockIncomingMessage = nit.require ("http.mocks.IncomingMessage");
+const MockServerResponse = nit.require ("http.mocks.ServerResponse");
 
 
 test.method ("http.Handler", "middleware", true)

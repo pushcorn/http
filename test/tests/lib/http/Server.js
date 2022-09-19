@@ -1,9 +1,9 @@
 const CERTS_DIR = nit.new ("nit.Dir", test.TEST_PROJECT_PATH).subdir ("resources/certs");
 
-const MockIncomingMessage = nit.require ("http.MockIncomingMessage");
-const MockServerResponse = nit.require ("http.MockServerResponse");
-const MockNodeHttpServer = nit.require ("http.MockNodeHttpServer");
-const MockNodeSocket = nit.require ("http.MockNodeSocket");
+const MockIncomingMessage = nit.require ("http.mocks.IncomingMessage");
+const MockServerResponse = nit.require ("http.mocks.ServerResponse");
+const MockNodeHttpServer = nit.require ("http.mocks.NodeHttpServer");
+const MockSocket = nit.require ("http.mocks.Socket");
 const Server = nit.require ("http.Server");
 
 
@@ -68,24 +68,75 @@ test.method ("http.Server", "log")
 ;
 
 
-test.method ("http.Server", "stop")
-    .should ("close the open sockets")
+test.method ("http.Server", "removeSocket")
+    .should ("remove the socket from sockets")
         .before (function ()
         {
             let st = this;
+            let socket = new MockSocket ();
 
-            st.object.sockets["1234"] =
-            {
-                end: function (cb)
-                {
-                    st.socketEnded = true;
-                    cb ();
-                }
-            };
+            st.object.addSocket (socket);
+            st.args[0] = socket;
         })
         .returnsInstanceOf ("http.Server")
-        .expectingPropertyToBe ("socketEnded", true)
         .expectingPropertyToBe ("object.sockets", {})
+        .commit ()
+;
+
+
+test.method ("http.Server", "trackSocketRequest")
+    .should ("track the open requests for a socket")
+        .given (new MockIncomingMessage ("GET", "/users"), new MockServerResponse ())
+        .returnsInstanceOf ("http.Server")
+        .expectingPropertyToBe ("args.0.socket.requests.length", 1)
+        .commit ()
+
+    .should ("end the socket if there is no associated request when the server is stopped")
+        .given (new MockIncomingMessage ("GET", "/users"), new MockServerResponse ())
+        .returnsInstanceOf ("http.Server")
+        .after (function ()
+        {
+            this.object.$__stopped = true;
+            this.args[1].listeners ("finish")[0] ();
+        })
+        .expectingPropertyToBe ("args.0.socket.requests.length", 0)
+        .expectingPropertyToBe ("args.0.socket.ended", true)
+        .commit ()
+
+    .should ("not close the socket on request finish when the server is not stopped")
+        .given (new MockIncomingMessage ("GET", "/users"), new MockServerResponse ())
+        .returnsInstanceOf ("http.Server")
+        .after (function ()
+        {
+            this.args[1].listeners ("finish")[0] ();
+        })
+        .expectingPropertyToBe ("args.0.socket.requests.length", 0)
+        .expectingPropertyToBe ("args.0.socket.ended", false)
+        .commit ()
+;
+
+
+test.method ("http.Server", "stop")
+    .should ("return if there are open sockets")
+        .up (function ()
+        {
+            this.createArgs = [{ stopTimeout: 0 }];
+        })
+        .before (function ()
+        {
+            let socket = new MockSocket ({ id: "1234" });
+
+            this.object.addSocket (socket);
+        })
+        .mock ("object", "endSockets")
+        .returnsInstanceOf ("http.Server")
+        .after (async function ()
+        {
+            await this.object.stop ();
+            await nit.sleep (10);
+        })
+        .expectingPropertyToBeOfType ("object.sockets.1234", "http.mocks.Socket")
+        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
         .commit ()
 ;
 
@@ -189,17 +240,18 @@ test.method ("http.Server", "dispatch")
         )
         .up (function ()
         {
-            this.createArgs = [{ oneShot: true }];
+            this.createArgs = [{ oneShot: true, stopTimeout: 0 }];
         })
         .after (async function ()
         {
             let server = this.object;
-            let socket = new MockNodeSocket ();
-            let listener = this.args[1].listeners ("finish")[0];
+            let socket = new MockSocket ({ id: "1234" });
+            let listener = this.args[1].listeners ("finish")[1];
 
-            server.sockets["1234"] = socket;
+            server.addSocket (socket);
 
             await listener ();
+            await nit.sleep (10);
         })
         .returnsInstanceOf ("http.Context")
         .expectingPropertyToBe ("object.sockets", {})
@@ -323,7 +375,7 @@ test.method ("http.Server", "start")
         {
             let server = nit.get (this, "mocks.0.invocations.0.result");
 
-            this.socket = new MockNodeSocket ();
+            this.socket = new MockSocket ();
 
             server.listeners.connection (this.socket);
             server.listeners.request ("REQ", "RES");
@@ -372,7 +424,7 @@ test.method ("http.Server", "start")
         .after (async function ()
         {
             let server = nit.get (this, "mocks.0.invocations.0.result");
-            let socket = this.socket = new MockNodeSocket ();
+            let socket = this.socket = new MockSocket ();
 
             socket.on ("end", nit.noop);
 

@@ -1,6 +1,6 @@
 module.exports = function (nit)
 {
-    return nit.test.defineMock ("http.MockNodeHttpServer")
+    return nit.defineClass ("http.mocks.NodeHttpServer")
         .field ("listeners", "object")
         .field ("port", "integer")
         .field ("address", "string")

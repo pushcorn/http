@@ -68,12 +68,12 @@ test.method (Response.testClass, "toBody")
 
 test.method (Response.testClass, "write")
     .should ("write the data to the given ServerResponse object")
-        .given (nit.new ("http.MockServerResponse"))
+        .given (nit.new ("http.mocks.ServerResponse"))
         .expectingPropertyToBe ("args.0.data", (new Response.testClass).toBody ())
         .commit ()
 
     .should ("write an empty string if toBod () returns undefined")
-        .given (nit.new ("http.MockServerResponse"))
+        .given (nit.new ("http.mocks.ServerResponse"))
         .before (function ()
         {
             this.class.method ("toBody", function () {});
@@ -97,7 +97,7 @@ test.method (Response.testClass, "write")
                 })
             ;
         })
-        .given (nit.new ("http.MockServerResponse"))
+        .given (nit.new ("http.mocks.ServerResponse"))
         .after (async function ()
         {
             await nit.sleep (10);
