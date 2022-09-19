@@ -1,6 +1,6 @@
 {
     "name": "@pushcorn/http",
-    "version": "0.9.0",
+    "version": "0.9.1",
     "description": "The HTTP module for nit.",
     "license": "ISC",
     "files": [
@@ -12,6 +12,5 @@
     "peerDependencies": {
         "@pushcorn/nit": "github:pushcorn/nit#semver:^0.9.40"
     },
-    "dependencies": {
-    }
+    "dependencies": {}
 }
