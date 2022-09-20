@@ -16,6 +16,15 @@ test.method ("http.HostnameMatcher", "matches", { createArgs: ["*.pushcorn.com"]
         .commit ()
 ;
 
+
+test.method ("http.HostnameMatcher", "matches", { createArgs: ["dev.*.pushcorn.com"] })
+    .should (MESSAGE)
+        .given ("dev.site.pushcorn.com")
+        .returns (2)
+        .commit ()
+;
+
+
 test.method ("http.HostnameMatcher", "matches", { createArgs: ["*.pushcorn.com"] })
     .should (MESSAGE)
         .given ("a.pushcorn.com")
