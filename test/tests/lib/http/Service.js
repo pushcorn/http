@@ -28,6 +28,18 @@ test.method (Service.TestService, "endpoint", true)
 ;
 
 
+test.method (Service.TestService, "defineContext", true)
+    .should ("define a service context")
+        .given (function (cls)
+        {
+            cls.field ("db", "any");
+        })
+        .returnsInstanceOf (Function)
+        .expectingPropertyToBe ("object.Context.name", "http.Service.Context")
+        .commit ()
+;
+
+
 let certsDir = nit.new ("nit.Dir", test.TEST_PROJECT_PATH).subdir ("resources/certs");
 
 

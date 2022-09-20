@@ -165,7 +165,7 @@ test.method ("http.Server", "dispatch")
             ];
         })
         .mock (nit, "log")
-        .returnsInstanceOf ("http.Context")
+        .returnsInstanceOf ("http.Service.Context")
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "[UNEXPECTED_ERROR]")
         .expectingPropertyToBe ("mocks.0.invocations.0.args.1.message", "catch this!")
         .expectingPropertyToBe ("args.1.data", nit.new ("http.responses.RequestFailed").toBody ())
@@ -192,7 +192,7 @@ test.method ("http.Server", "dispatch")
             }
             ];
         })
-        .returnsInstanceOf ("http.Context")
+        .returnsInstanceOf ("http.Service.Context")
         .expectingPropertyToBeOfType ("result.response", "http.responses.ResourceNotFound")
         .expectingPropertyToBe ("args.1.data", nit.new ("http.responses.ResourceNotFound").toBody ())
         .commit ()
@@ -219,7 +219,7 @@ test.method ("http.Server", "dispatch")
             }
             ];
         })
-        .returnsInstanceOf ("http.Context")
+        .returnsInstanceOf ("http.Service.Context")
         .expectingPropertyToBeOfType ("result.response", "http.responses.AccessUnauthorized")
         .commit ()
 
@@ -286,10 +286,15 @@ test.method ("http.Server", "start")
             }
         })
         .mock ("object", "log")
+        .after (function ()
+        {
+            this.object.nodeServer.removeAllListeners ();
+        })
         .returns ()
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0.allowHTTP1", true)
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0.requestCert", false)
         .expectingPropertyToBe ("mocks.0.invocations.0.result.port", 443)
+        .expectingPropertyToBe ("mocks.0.invocations.0.result.listenerMap", {})
         .expectingPropertyToBe ("mocks.1.invocations.0.args.0", "info.server_started")
         .expectingPropertyToBeOfType ("mocks.0.invocations.0.args.0.SNICallback", "function")
         .expecting ("the SNICallback will return the server's secureContext", true, function (s)
@@ -338,8 +343,13 @@ test.method ("http.Server", "start")
             }
         })
         .mock ("object", "log")
+        .after (function ()
+        {
+            this.object.nodeServer.removeAllListeners ("connection");
+        })
         .returns ()
         .expectingPropertyToBe ("mocks.0.invocations.0.result.port", 443)
+        .expectingPropertyToBe ("mocks.0.invocations.0.result.listenerMap.connection", undefined)
         .expectingPropertyToBe ("mocks.1.invocations.0.args.0", "info.server_started")
         .expecting ("the SNICallback will return the service's secureContext", true, function (s)
         {
@@ -377,12 +387,12 @@ test.method ("http.Server", "start")
 
             this.socket = new MockSocket ();
 
-            server.listeners.connection (this.socket);
-            server.listeners.request ("REQ", "RES");
+            server.listeners ("connection")[0] (this.socket);
+            server.listeners ("request")[0] ("REQ", "RES");
 
             try
             {
-                await server.listeners.error (new Error ("launch error!"));
+                await server.listeners ("error")[0] (new Error ("launch error!"));
             }
             catch (e)
             {
@@ -428,7 +438,7 @@ test.method ("http.Server", "start")
 
             socket.on ("end", nit.noop);
 
-            server.listeners.connection (socket);
+            server.listeners ("connection")[0] (socket);
             socket.listeners.timeout ();
         })
         .expectingPropertyToBe ("socket.keepAlive", false)
@@ -469,7 +479,7 @@ test.method ("http.Server", "start")
 
             try
             {
-                await server.listeners.error (error);
+                await server.listeners ("error")[0] (error);
             }
             catch (e)
             {
