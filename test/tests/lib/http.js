@@ -22,12 +22,19 @@ test.object ("http.IncomingMessage")
             let m = this.result;
 
             m.httpVersion = "1.1";
-            m.headers = { host: "localhost" };
             m.socket = { remoteAddress: "127.0.0.1" };
+            m.headers =
+            {
+                "host": "localhost",
+                "user-agent": "nit",
+                "content-type": "application/json; charset=UTF-8"
+            };
         })
         .expectingPropertyToBe ("result.hostname", "localhost")
         .expectingPropertyToBe ("result.ip", "127.0.0.1")
         .expectingPropertyToBe ("result.realIp", "127.0.0.1")
+        .expectingPropertyToBe ("result.userAgent", "nit")
+        .expectingPropertyToBe ("result.contentType", "application/json")
         .commit ()
 
     .should ("use return the value of x-forwarded-for for realIp if available")
@@ -39,6 +46,8 @@ test.object ("http.IncomingMessage")
             m.socket = { remoteAddress: "127.0.0.1" };
         })
         .expectingPropertyToBe ("result.realIp", "1.2.3.4")
+        .expectingPropertyToBe ("result.userAgent", "")
+        .expectingPropertyToBe ("result.contentType", "")
         .commit ()
 
     .should ("use :authority header for hostname if http2 was used")
@@ -73,5 +82,17 @@ test.method (http, "createSecureContext", true)
     .should ("create a secure context")
         .given (dir.join ("pushcorn.com.crt"), dir.join ("pushcorn.com.key"), dir.join ("ca.pushcorn.com.crt"))
         .returnsInstanceOf (require ("tls").SecureContext)
+        .commit ()
+;
+
+
+test.method (http, "responseFor", true)
+    .should ("return a response instance for the given status code")
+        .given (200)
+        .returnsInstanceOf (http.Response)
+        .commit ()
+
+    .given (204)
+        .returnsInstanceOf ("http.responses.NoContent")
         .commit ()
 ;
