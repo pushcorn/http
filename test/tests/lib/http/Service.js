@@ -1,3 +1,4 @@
+const http = nit.require ("http");
 const Service = nit.require ("http.Service")
     .staticGetter ("TestService", function ()
     {
@@ -24,6 +25,11 @@ test.method (Service.TestService, "endpoint", true)
     .given ("POST", "/resources", nit.new ("test.handlers.Noop"))
         .expectingPropertyToBe ("class.endpoints.length", 2)
         .expectingPropertyToBeOfType ("class.endpoints.1.handler", "test.handlers.Noop")
+        .commit ()
+
+    .given ("GET", "/version", function (ctx) { ctx.send ("http:request-succeeded"); })
+        .expectingPropertyToBe ("class.endpoints.length", 3)
+        .expectingPropertyToBeOfType ("class.endpoints.2.handler", "FuncHandler")
         .commit ()
 ;
 
@@ -142,59 +148,98 @@ test.method (Service.TestService, "getPriority")
 
 
 test.method (Service.TestService, "dispatch")
-    .should ("run the service with mock request and response")
-        .given ("POST", "/users", { headers: { a: 1 } })
+    .should ("run the plugins and handler for the request")
+        .given (http.Context.create ("POST", "/users", { headers: { a: 1 } }))
         .before (function ()
         {
-            this.class.endpoint ("POST", "/resources", "test:noop");
+            const Plugin = nit.defineClass ("Plugin", "http.service.Plugin", true);
+
+            this.plugin = new Plugin;
+            this.class.endpoint ("GET", "/users/:id", "test:noop");
+            this.class.endpoint ("POST", "/users", "test:noop");
+            this.class.servicePlugin (this.plugin);
         })
-        .returnsInstanceOf ("http.Context")
-        .expectingPropertyToBe ("result.req.method", "POST")
-        .expectingPropertyToBe ("result.req.path", "/users")
-        .expectingPropertyToBe ("result.req.headers", { a: 1 })
+        .mock ("plugin", "preDispatch", function () {})
+        .mock ("plugin", "postDispatch", function () {})
+        .mock ("class.endpoints.0.handler", "run")
+        .mock ("class.endpoints.1.handler", "run")
+        .returns ()
+        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
+        .expectingPropertyToBeOfType ("mocks.0.invocations.0.args.0", "http.Service")
+        .expectingPropertyToBeOfType ("mocks.0.invocations.0.args.1", "http.Context")
+        .expectingPropertyToBe ("mocks.1.invocations.length", 1)
+        .expectingPropertyToBeOfType ("mocks.1.invocations.0.args.0", "http.Service")
+        .expectingPropertyToBeOfType ("mocks.1.invocations.0.args.1", "http.Context")
+        .expectingPropertyToBe ("mocks.2.invocations.length", 0)
+        .expectingPropertyToBe ("mocks.3.invocations.length", 1)
         .commit ()
 ;
 
 
-test.method (Service.TestService, "run")
-    .should ("select the endpoint and run the handler")
-        .given (nit.new ("http.Context",
-            nit.new ("http.mocks.IncomingMessage", "POST", "/resources"),
-            nit.new ("http.mocks.ServerResponse")
-        ))
+test.method (Service.TestService, "init")
+    .should ("initalize the service and the plugins")
+        .given (nit.new ("http.Server"))
         .before (function ()
         {
-            const ResourceCreated = nit.defineClass ("test.responses.ResourceCreated", "http.Response")
-                .info (201, "The resource has been created.")
-                .field ("<id>", "string", "The resource ID.")
-                .field ("[name]", "string", "The resource name.")
-            ;
+            const Plugin = nit.defineClass ("Plugin", "http.service.Plugin", true);
 
-            nit.defineClass ("test.handlers.CreateResource", "http.Handler")
-                .run (function ()
-                {
-                    return new ResourceCreated ("1234", "new resource");
-                })
-            ;
-
-            this.class.endpoint ("POST", "/resources", "test:create-resource");
+            this.plugin = new Plugin;
+            this.class.servicePlugin (this.plugin);
         })
-        .returnsInstanceOf ("http.Context")
-        .expectingPropertyToBeOfType ("result.response", "test.responses.ResourceCreated")
-        .expectingPropertyToBe ("result.response.id", "1234")
-        .expectingPropertyToBe ("result.response.name", "new resource")
+        .mock ("plugin", "onInit", function () {})
+        .returns ()
+        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
         .commit ()
+;
 
-    .should ("just return the context if no matching endpoint was found")
-        .given (nit.new ("http.Context",
-            nit.new ("http.mocks.IncomingMessage", "GET", "/resources"),
-            nit.new ("http.mocks.ServerResponse")
-        ))
+
+test.method (Service.TestService, "start")
+    .should ("start the service and the plugins")
+        .given (nit.new ("http.Server"))
         .before (function ()
         {
-            this.class.endpoint ("POST", "/resources", "test:create-resource");
+            const Plugin = nit.defineClass ("Plugin", "http.service.Plugin", true);
+
+            this.plugin = new Plugin;
+            this.class.servicePlugin (this.plugin);
         })
-        .returnsInstanceOf ("http.Context")
-        .expectingPropertyToBe ("result.response", undefined)
+        .mock ("plugin", "onStart", function () {})
+        .returns ()
+        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
+        .commit ()
+;
+
+
+test.method (Service.TestService, "stop")
+    .should ("stop the service and the plugins")
+        .given (nit.new ("http.Server"))
+        .before (function ()
+        {
+            const Plugin = nit.defineClass ("Plugin", "http.service.Plugin", true);
+
+            this.plugin = new Plugin;
+            this.class.servicePlugin (this.plugin);
+        })
+        .mock ("plugin", "onStop", function () {})
+        .returns ()
+        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
+        .commit ()
+;
+
+
+test.method (Service.TestService, "upgrade")
+    .should ("invoke plugins when the client request an upgrade")
+        .given ("req", "socket", "head")
+        .before (function ()
+        {
+            const Plugin = nit.defineClass ("Plugin", "http.service.Plugin", true);
+
+            this.plugin = new Plugin;
+            this.class.servicePlugin (this.plugin);
+        })
+        .mock ("plugin", "onUpgrade", function () {})
+        .returns ()
+        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
+        .expectingPropertyToBe ("mocks.0.invocations.0.args", [{}, "req", "socket", "head"])
         .commit ()
 ;

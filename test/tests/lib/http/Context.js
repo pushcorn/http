@@ -77,6 +77,21 @@ test.object ("http.Context")
 ;
 
 
+test.method (createTestContext (), "create", true)
+    .should ("create an instance of Context with mock IncomingMessage and ServerResponse")
+        .given ("GET", "/users", { headers: { a: "b" } })
+        .after (async function ()
+        {
+            await this.result.parseRequest ();
+        })
+        .returnsInstanceOf ("http.Context")
+        .expectingPropertyToBe ("result.method", "GET")
+        .expectingPropertyToBe ("result.path", "/users")
+        .expectingPropertyToBe ("result.headerParams.a", "b")
+        .commit ()
+;
+
+
 test.method (createTestContext (), "parseRequest",
     {
         createArgs:
