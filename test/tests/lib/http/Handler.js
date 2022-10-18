@@ -1,3 +1,4 @@
+const http = nit.require ("http");
 const MockIncomingMessage = nit.require ("http.mocks.IncomingMessage");
 const MockServerResponse = nit.require ("http.mocks.ServerResponse");
 
@@ -22,9 +23,9 @@ test.method ("http.Handler", "response", true)
 ;
 
 
-test.method (nit.defineClass ("http.MyHandler", "http.Handler", true), "defineRequest", true)
+test.method (nit.defineClass ("http.Handler", "http.Handler", true), "defineRequest", true)
     .should ("define a handler specific request")
-        .expectingPropertyToBe ("object.Request.name", "http.MyHandler.Request")
+        .expectingPropertyToBe ("object.Request.name", "http.Handler.Request")
         .commit ()
 ;
 
@@ -62,21 +63,21 @@ test.method (nit.defineClass ("http.Handler", "http.Handler", true), "runMiddlew
 ;
 
 
-test.method (nit.defineClass ("http.MyHandler", "http.Handler", true), "buildRequest")
+test.method (nit.defineClass ("http.Handler", "http.Handler", true), "buildRequest")
     .should ("create a new request from the context parameters")
         .given (nit.new ("http.Context",
             new MockIncomingMessage ("POST", "/resources/100?time=5555",
             {
                 headers: { "api-key": "1234" },
-                cookies: { trackingToken: "5678", sessionId: "abcd" }
-            }),
-            new MockServerResponse,
-            {
-                route: nit.new ("http.Route", "POST", "/resources/:resourceId"),
-                formParams:
+                cookies: { trackingToken: "5678", sessionId: "abcd" },
+                data:
                 {
                     secret: "xyz"
                 }
+            }),
+            new MockServerResponse,
+            {
+                route: nit.new ("http.Route", "POST", "/resources/:resourceId")
             }
         ))
         .before (async function ()
@@ -95,7 +96,7 @@ test.method (nit.defineClass ("http.MyHandler", "http.Handler", true), "buildReq
                 ;
             });
         })
-        .returnsInstanceOf ("http.MyHandler.Request")
+        .returnsInstanceOf ("http.Handler.Request")
         .expectingPropertyToBe ("result.api-key", "1234")
         .expectingPropertyToBe ("result.time", 5555)
         .expectingPropertyToBe ("result.resourceId", 100)
@@ -106,7 +107,7 @@ test.method (nit.defineClass ("http.MyHandler", "http.Handler", true), "buildReq
 ;
 
 
-test.method (nit.defineClass ("http.MyHandler", "http.Handler", true), "run")
+test.method (nit.defineClass ("http.Handler", "http.Handler", true), "run")
     .before (async function ()
     {
         const ResourceCreated = nit.defineClass ("test.responses.ResourceCreated", "http.Response")
@@ -127,14 +128,16 @@ test.method (nit.defineClass ("http.MyHandler", "http.Handler", true), "run")
         ;
 
         this.ctx = nit.new ("http.Context",
-            new MockIncomingMessage ("POST", "/resources"),
-            new MockServerResponse,
+            new MockIncomingMessage ("POST", "/resources",
             {
-                route: nit.new ("http.Route", "POST", "/resources"),
-                formParams:
+                data:
                 {
                     name: "new resource"
                 }
+            }),
+            new MockServerResponse,
+            {
+                route: nit.new ("http.Route", "POST", "/resources")
             }
         );
 
@@ -163,13 +166,13 @@ test.method (nit.defineClass ("http.MyHandler", "http.Handler", true), "run")
             const RespondOnPreRequest = nit.defineClass ("test.middlewares.RespondOnPreRequest", "http.Handler.Middleware")
                 .method ("preRequest", function (ctx)
                 {
-                    ctx.response = nit.new ("http.responses.AccessUnauthorized");
+                    ctx.response = http.responseFor (401);
                 })
             ;
 
             this.class.middlewares.push (new RespondOnPreRequest);
         })
-        .expectingPropertyToBeOfType ("ctx.response", "http.responses.AccessUnauthorized")
+        .expectingPropertyToBeOfType ("ctx.response", "http.responses.Unauthorized")
         .commit ()
 
     .should ("set the response to ResourceNotFound if the handler did not implement the run callback")
@@ -178,7 +181,7 @@ test.method (nit.defineClass ("http.MyHandler", "http.Handler", true), "run")
             this.class["http.Handler.run"] = undefined;
             this.class.middlewares = [];
         })
-        .expectingPropertyToBeOfType ("ctx.response", "http.responses.ResourceNotFound")
+        .expectingPropertyToBeOfType ("ctx.response", "http.responses.NotFound")
         .commit ()
 
     .should ("set the response to RequestSucceeded if the run callback is implemented but did not return a response")
@@ -194,7 +197,7 @@ test.method (nit.defineClass ("http.MyHandler", "http.Handler", true), "run")
         {
             this.class.run (function (ctx)
             {
-                ctx.response = nit.new ("http.responses.AccessUnauthorized");
+                ctx.response = http.responseFor (401);
                 nit.throw ("error.bad_thing_happened");
             });
 
@@ -210,7 +213,7 @@ test.method (nit.defineClass ("http.MyHandler", "http.Handler", true), "run")
             this.Audit = Audit;
         })
         .throws ("error.bad_thing_happened")
-        .expectingPropertyToBeOfType ("ctx.response", "http.responses.AccessUnauthorized")
+        .expectingPropertyToBeOfType ("ctx.response", "http.responses.Unauthorized")
         .expectingPropertyToBe ("Audit.onCompleteCalled", true)
         .commit ()
 ;
