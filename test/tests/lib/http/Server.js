@@ -1,5 +1,6 @@
 const CERTS_DIR = nit.new ("nit.Dir", test.TEST_PROJECT_PATH).subdir ("resources/certs");
 
+const http = nit.require ("http");
 const MockIncomingMessage = nit.require ("http.mocks.IncomingMessage");
 const MockServerResponse = nit.require ("http.mocks.ServerResponse");
 const MockNodeHttpServer = nit.require ("http.mocks.NodeHttpServer");
@@ -120,7 +121,12 @@ test.method ("http.Server", "stop")
     .should ("return if there are open sockets")
         .up (function ()
         {
-            this.createArgs = [{ stopTimeout: 0 }];
+            this.createArgs =
+            [
+            {
+                stopTimeout: 0
+            }
+            ];
         })
         .before (function ()
         {
@@ -138,6 +144,23 @@ test.method ("http.Server", "stop")
         .expectingPropertyToBeOfType ("object.sockets.1234", "http.mocks.Socket")
         .expectingPropertyToBe ("mocks.0.invocations.length", 1)
         .commit ()
+
+    .should ("stop the services")
+        .up (function ()
+        {
+            const AppService = nit.defineClass ("test.services.AppService", "http.Service");
+
+            this.createArgs =
+            [
+            {
+                services: [new AppService ()]
+            }
+            ];
+        })
+        .mock ("createArgs.0.services.0", "stop")
+        .returnsInstanceOf ("http.Server")
+        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
+        .commit ()
 ;
 
 
@@ -151,7 +174,7 @@ test.method ("http.Server", "dispatch")
         {
             const AppService = nit.defineClass ("test.services.AppService", "http.Service");
             const DashboardService = nit.defineClass ("test.services.DashboardService", "http.Service")
-                .method ("run", function ()
+                .method ("dispatch", function ()
                 {
                     throw new Error ("catch this!");
                 })
@@ -165,13 +188,94 @@ test.method ("http.Server", "dispatch")
             ];
         })
         .mock (nit, "log")
-        .returnsInstanceOf ("http.Service.Context")
+        .returnsInstanceOf (http.Context)
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "[UNEXPECTED_ERROR]")
         .expectingPropertyToBe ("mocks.0.invocations.0.args.1.message", "catch this!")
-        .expectingPropertyToBe ("args.1.data", nit.new ("http.responses.RequestFailed").toBody ())
+        .expectingMethodToReturnValue ("args.1.data.toString", http.responseFor (500).toBody (http.Context.create ("GET", "/users")))
         .commit ()
 
-    .should ("set the response to ResourceNotFound if the service did not provide one")
+    .should ("log the error if http.Context.writeResponse () throws")
+        .given (
+            new MockIncomingMessage ("GET", "/users", { headers: { host: "dashboard.pushcorn.com" } }),
+            new MockServerResponse ()
+        )
+        .up (function ()
+        {
+            const DashboardService = nit.defineClass ("test.services.DashboardService", "http.Service")
+                .defineContext (Context =>
+                {
+                    Context.method ("writeResponse", function ()
+                    {
+                        throw new Error ("ERR!");
+                    });
+                })
+            ;
+
+            this.createArgs =
+            [
+            {
+                services: [new DashboardService ("dashboard.pushcorn.com")]
+            }
+            ];
+        })
+        .mock (nit, "log")
+        .returnsInstanceOf (http.Context)
+        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "[UNEXPECTED_ERROR]")
+        .commit ()
+
+    .should ("convert the error to the proper response if the error is an integer")
+        .given (
+            new MockIncomingMessage ("GET", "/users", { headers: { host: "dashboard.pushcorn.com" } }),
+            new MockServerResponse ()
+        )
+        .up (function ()
+        {
+            const AppService = nit.defineClass ("test.services.AppService", "http.Service")
+                .method ("dispatch", function ()
+                {
+                    throw 403; // eslint-disable-line no-throw-literal
+                })
+            ;
+
+            this.createArgs =
+            [
+            {
+                services: [new AppService ()]
+            }
+            ];
+        })
+        .returnsInstanceOf (http.Context)
+        .expectingPropertyToBeOfType ("result.response", "http.responses.Forbidden")
+        .commit ()
+
+    .should ("use the the error if it is an instance of http.Response")
+        .given (
+            new MockIncomingMessage ("GET", "/users", { headers: { host: "dashboard.pushcorn.com" } }),
+            new MockServerResponse ()
+        )
+        .up (function ()
+        {
+            const UnknowError = nit.defineClass ("UnknowError", "http.Response");
+
+            const AppService = nit.defineClass ("test.services.AppService", "http.Service")
+                .method ("dispatch", function ()
+                {
+                    throw new UnknowError;
+                })
+            ;
+
+            this.createArgs =
+            [
+            {
+                services: [new AppService ()]
+            }
+            ];
+        })
+        .returnsInstanceOf (http.Context)
+        .expectingPropertyToBeOfType ("result.response", "UnknowError")
+        .commit ()
+
+    .should ("set the response to NotFound if the service did not provide one")
         .given (
             new MockIncomingMessage ("GET", "/users", { headers: { host: "dashboard.pushcorn.com" } }),
             new MockServerResponse ()
@@ -180,8 +284,9 @@ test.method ("http.Server", "dispatch")
         {
             const AppService = nit.defineClass ("test.services.AppService", "http.Service");
             const DashboardService = nit.defineClass ("test.services.DashboardService", "http.Service")
-                .method ("run", function ()
+                .method ("dispatch", (ctx) =>
                 {
+                    this.ctx = ctx;
                 })
             ;
 
@@ -192,9 +297,9 @@ test.method ("http.Server", "dispatch")
             }
             ];
         })
-        .returnsInstanceOf ("http.Service.Context")
-        .expectingPropertyToBeOfType ("result.response", "http.responses.ResourceNotFound")
-        .expectingPropertyToBe ("args.1.data", nit.new ("http.responses.ResourceNotFound").toBody ())
+        .returnsInstanceOf (http.Context)
+        .expectingPropertyToBeOfType ("ctx.response", "http.responses.NotFound")
+        .expectingMethodToReturnValue ("args.1.data.toString", nit.new ("http.responses.NotFound").toBody (http.Context.create ("GET", "/")))
         .commit ()
 
     .should ("use the response from the service")
@@ -206,9 +311,10 @@ test.method ("http.Server", "dispatch")
         {
             const AppService = nit.defineClass ("test.services.AppService", "http.Service");
             const DashboardService = nit.defineClass ("test.services.DashboardService", "http.Service")
-                .method ("run", function (ctx)
+                .method ("dispatch", (ctx) =>
                 {
-                    ctx.response = nit.new ("http.responses.AccessUnauthorized");
+                    ctx.response = http.responseFor (401);
+                    this.ctx = ctx;
                 })
             ;
 
@@ -219,18 +325,18 @@ test.method ("http.Server", "dispatch")
             }
             ];
         })
-        .returnsInstanceOf ("http.Service.Context")
-        .expectingPropertyToBeOfType ("result.response", "http.responses.AccessUnauthorized")
+        .returnsInstanceOf (http.Context)
+        .expectingPropertyToBeOfType ("ctx.response", "http.responses.Unauthorized")
         .commit ()
 
-    .should ("set the response to ResourceNotFound if no service was selected")
+    .should ("set the response to NotFound if no service was selected")
         .given (
             new MockIncomingMessage ("GET", "/users", { headers: { host: "dashboard.pushcorn.com" } }),
             new MockServerResponse ()
         )
-        .returnsInstanceOf ("http.Context")
-        .expectingPropertyToBeOfType ("result.response", "http.responses.ResourceNotFound")
-        .expectingPropertyToBe ("args.1.data", nit.new ("http.responses.ResourceNotFound").toBody ())
+        .returnsInstanceOf (http.Context)
+        .expectingPropertyToBeOfType ("result.response", "http.responses.NotFound")
+        .expectingMethodToReturnValue ("args.1.data.toString", nit.new ("http.responses.NotFound").toBody (http.Context.create ("GET", "/users")))
         .commit ()
 
     .should ("stop the server if oneShot is true")
@@ -253,7 +359,7 @@ test.method ("http.Server", "dispatch")
             await listener ();
             await nit.sleep (10);
         })
-        .returnsInstanceOf ("http.Context")
+        .returnsInstanceOf (http.Context)
         .expectingPropertyToBe ("object.sockets", {})
         .commit ()
 ;
@@ -367,7 +473,16 @@ test.method ("http.Server", "start")
     .should ("create an HTTP server if no certificates were provided")
         .up (function ()
         {
-            this.createArgs = [{ port: 81 }];
+            const DashboardService = nit.defineClass ("test.services.DashboardService", "http.Service")
+            ;
+
+            this.createArgs =
+            [
+            {
+                services: [new DashboardService ("dashboard.pushcorn.com")],
+                port: 81
+            }
+            ];
         })
         .mock (
         {
@@ -380,6 +495,7 @@ test.method ("http.Server", "start")
         })
         .mock ("object", "log")
         .mock ("object", "dispatch")
+        .mock ("createArgs.0.services.0", "upgrade")
         .returns ()
         .after (async function ()
         {
@@ -389,6 +505,7 @@ test.method ("http.Server", "start")
 
             server.listeners ("connection")[0] (this.socket);
             server.listeners ("request")[0] ("REQ", "RES");
+            server.listeners ("upgrade")[0] ({ hostname: "dashboard.pushcorn.com" }, "socket", "head");
 
             try
             {
@@ -405,6 +522,7 @@ test.method ("http.Server", "start")
         .expectingPropertyToBe ("socket.timeout", Server.prototype.keepAliveTimeout)
         .expectingPropertyToBe ("mocks.2.invocations.0.args", ["REQ", "RES"])
         .expectingPropertyToBe ("serverError.message", "launch error!")
+        .expectingPropertyToBe ("mocks.3.invocations.0.args", [{ hostname: "dashboard.pushcorn.com" }, "socket", "head"])
         .commit ()
 ;
 

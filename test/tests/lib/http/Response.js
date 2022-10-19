@@ -1,9 +1,25 @@
-const no_stream = require ("stream");
+const http = nit.require ("http");
 const Response = nit.require ("http.Response")
     .staticGetter ("testClass", function ()
     {
         return this.defineSubclass (this.name, true);
     })
+;
+
+
+test.object (Response.testClass, true)
+    .should ("override the class defaults with the specified constructor args")
+        .given ({ "@name": "InvalidInput" })
+        .expectingMethodToReturnValue ("result.toPojo", { "@name": "InvalidInput", "@message": "Not Found", "@status": 404 })
+        .commit ()
+
+    .given ({ "@status": 401 })
+        .expectingMethodToReturnValue ("result.toPojo", { "@name": "Response", "@message": "Not Found", "@status": 401 })
+        .commit ()
+
+    .given ({ "@message": "Invalid Input" })
+        .expectingMethodToReturnValue ("result.toPojo", { "@name": "Response", "@message": "Invalid Input", "@status": 404 })
+        .commit ()
 ;
 
 
@@ -56,6 +72,7 @@ test.method (Response.testClass.field ("<id>", "string"), "toPojo", { createArgs
 
 test.method (Response.testClass, "toBody")
     .should ("serialize the response into JSON")
+        .given (http.Context.create ("GET", "/"))
         .returns (JSON.stringify (
         {
             "@name": "Response",
@@ -63,46 +80,4 @@ test.method (Response.testClass, "toBody")
             "@message": "Not Found"
         }))
         .commit ()
-;
-
-
-test.method (Response.testClass, "write")
-    .should ("write the data to the given ServerResponse object")
-        .given (nit.new ("http.mocks.ServerResponse"))
-        .expectingPropertyToBe ("args.0.data", (new Response.testClass).toBody ())
-        .commit ()
-
-    .should ("write an empty string if toBod () returns undefined")
-        .given (nit.new ("http.mocks.ServerResponse"))
-        .before (function ()
-        {
-            this.class.method ("toBody", function () {});
-        })
-        .expectingPropertyToBe ("args.0.data", "")
-        .commit ()
-
-    .should ("pipe the data to the ServerResponse the toBody () returns a stream")
-        .before (function ()
-        {
-            let strategy = this;
-
-            this.class
-                .method ("toBody", function ()
-                {
-                    let readable = new no_stream.Readable ();
-
-                    readable._read = function () { strategy.readCalled = true; };
-
-                    return readable;
-                })
-            ;
-        })
-        .given (nit.new ("http.mocks.ServerResponse"))
-        .after (async function ()
-        {
-            await nit.sleep (10);
-        })
-        .expectingPropertyToBe ("readCalled", true)
-        .commit ()
-
 ;
