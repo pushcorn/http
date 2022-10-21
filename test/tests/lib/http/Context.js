@@ -26,21 +26,6 @@ test.object ("http.Context")
         .expectingPropertyToBe ("result.res.headers", { time: 1000 })
         .commit ()
 
-    .should ("throw when accessing an uninitialized field")
-        .given (new MockIncomingMessage ("GET", "/users?a=b"), new MockServerResponse)
-        .expecting ("accessing server will result in error", "error.field_not_initialized", function ({ result })
-        {
-            try { return result.server; } catch (e) { return e.code; }
-        })
-        .commit ()
-
-    .given (new MockIncomingMessage ("GET", "/users?a=b"), new MockServerResponse)
-        .expecting ("accessing service will result in error", "error.field_not_initialized", function ({ result })
-        {
-            try { return result.service; } catch (e) { return e.code; }
-        })
-        .commit ()
-
     .should ("set responseBody to an empty string for bodyless responses")
         .given (new MockIncomingMessage ("GET", "/users?a=b"), new MockServerResponse)
         .after (function ()
@@ -88,6 +73,13 @@ test.method (createTestContext (), "create", true)
         .expectingPropertyToBe ("result.method", "GET")
         .expectingPropertyToBe ("result.path", "/users")
         .expectingPropertyToBe ("result.headerParams.a", "b")
+        .commit ()
+
+    .given ()
+        .returnsInstanceOf ("http.Context")
+        .expectingPropertyToBe ("result.method", "GET")
+        .expectingPropertyToBe ("result.path", "/")
+        .expectingPropertyToBe ("result.headerParams", {})
         .commit ()
 ;
 
