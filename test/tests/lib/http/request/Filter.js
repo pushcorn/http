@@ -27,7 +27,7 @@ test.method ("http.request.Filter", "parseStream", true)
 ;
 
 
-test.method ("http.request.Filter", "readBodyAsBuffer")
+test.method ("http.request.Filter", "readBodyAsBuffer", true)
     .should ("read the request stream as a buffer")
     .given ({ requestStream: Readable.from (Buffer.from ("test")) })
     .returns (Buffer.from ("test"))
@@ -35,7 +35,7 @@ test.method ("http.request.Filter", "readBodyAsBuffer")
 ;
 
 
-test.method ("http.request.Filter", "readBodyAsString")
+test.method ("http.request.Filter", "readBodyAsString", true)
     .should ("read the request stream as a string")
         .given ({ requestStream: Readable.from (Buffer.from ("test")) })
         .returns ("test")
