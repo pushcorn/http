@@ -367,16 +367,6 @@ test.method ("http.Context", "writeResponse",
         .expectingPropertyToBe ("mocks.0.invocations.length", 0)
         .commit ()
 
-    .should ("skip if writeEnabled is false")
-        .before (function ()
-        {
-            this.object.writeEnabled = false;
-        })
-        .mock ("object", "writeHeaders", function () {})
-        .returnsInstanceOf ("http.Context")
-        .expectingPropertyToBe ("mocks.0.invocations.length", 0)
-        .commit ()
-
     .should ("throw if the response was not set")
         .before (function ()
         {

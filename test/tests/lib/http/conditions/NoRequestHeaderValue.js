@@ -5,9 +5,12 @@ test.method ("http.conditions.NoRequestHeaderValue", "check",
     .should ("return %{result} when (header, value) = (%{createArgs.0}, %{createArgs.1}) and the request header is %{args.0}")
     .given (
     {
-        headerParams:
+        req:
         {
-            "cache-control": "no-store"
+            headers:
+            {
+                "cache-control": "no-store"
+            }
         }
     })
     .returns (true)
@@ -22,9 +25,12 @@ test.method ("http.conditions.NoRequestHeaderValue", "check",
     .should ("return %{result} when (header, value) = (%{createArgs.0}, %{createArgs.1}) and the request header is %{args.0}")
     .given (
     {
-        headerParams:
+        req:
         {
-            "cache-control": "no-cache"
+            headers:
+            {
+                "cache-control": "no-cache"
+            }
         }
     })
     .returns (false)

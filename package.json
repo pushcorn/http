@@ -10,12 +10,17 @@
         "resources/**"
     ],
     "peerDependencies": {
-        "@pushcorn/nit": "github:pushcorn/nit#semver:^0.9.43"
+        "@pushcorn/nit": "github:pushcorn/nit#semver:^0.9.45",
+        "@pushcorn/ui": "github:pushcorn/ui#semver:^0.9.4"
+    },
+    "peerDependenciesMeta": {
+        "@pushcorn/ui": {
+            "optional": true
+        }
     },
     "dependencies": {
         "formidable": "2.0.1",
         "negotiator": "0.6.3",
-        "node-fetch": "3.2.10",
         "qs": "6.11.0",
         "raw-body": "2.5.1",
         "socket.io": "4.5.3",

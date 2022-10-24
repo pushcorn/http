@@ -187,9 +187,9 @@ test.method ("http.Server", "dispatch")
             }
             ];
         })
-        .mock (nit, "log")
+        .mock ("object", "log")
         .returnsInstanceOf (http.Context)
-        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "[UNEXPECTED_ERROR]")
+        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "error.unexpected_error")
         .expectingPropertyToBe ("mocks.0.invocations.0.args.1.message", "catch this!")
         .expectingMethodToReturnValue ("args.1.data.toString", http.responseFor (500).toBody (http.Context.create ("GET", "/users")))
         .commit ()
@@ -218,9 +218,9 @@ test.method ("http.Server", "dispatch")
             }
             ];
         })
-        .mock (nit, "log")
+        .mock ("object", "log")
         .returnsInstanceOf (http.Context)
-        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "[UNEXPECTED_ERROR]")
+        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "error.unexpected_error")
         .commit ()
 
     .should ("convert the error to the proper response if the error is an integer")

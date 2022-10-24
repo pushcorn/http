@@ -2,6 +2,7 @@ const SocketIoServer = nit.require ("http.service.plugins.SocketIoServer");
 const MockIncomingMessage = nit.require ("http.mocks.IncomingMessage");
 const MockServerResponse = nit.require ("http.mocks.ServerResponse");
 const no_http = require ("http");
+const http = nit.require ("http");
 
 nit.defineClass ("handlers.TestHandler", "http.Handler")
     .run (function (ctx) // eslint-disable-line no-unused-vars
@@ -164,24 +165,68 @@ test.method (createTestService (), "dispatchSocketRequest")
         .returnsInstanceOf ("TestService.Context")
         .expectingPropertyToBeOfType ("result.response", "http.responses.NotFound")
         .commit ()
+
+    .should ("convert the error to proper response")
+        .given (new MockIncomingMessage ("GET", "/err"), new MockServerResponse)
+        .before (function ()
+        {
+            this.class.soGet ("/err", () =>
+            {
+                throw 423; // eslint-disable-line no-throw-literal
+            });
+        })
+        .returnsInstanceOf ("TestService.Context")
+        .expectingPropertyToBeOfType ("result.response", "http.responses.Locked")
+        .commit ()
+
+    .given (new MockIncomingMessage ("GET", "/err-res"), new MockServerResponse)
+        .before (function ()
+        {
+            this.class.soGet ("/err-res", () =>
+            {
+                throw http.responseFor (425);
+            });
+        })
+        .returnsInstanceOf ("TestService.Context")
+        .expectingPropertyToBeOfType ("result.response", "http.responses.TooEarly")
+        .commit ()
+
+    .given (new MockIncomingMessage ("GET", "/other-err"), new MockServerResponse)
+        .before (function ()
+        {
+            this.class.soGet ("/other-err", () =>
+            {
+                throw new Error ("ERR!");
+            });
+        })
+        .returnsInstanceOf ("TestService.Context")
+        .expectingPropertyToBeOfType ("result.response", "http.responses.InternalServerError")
+        .commit ()
+
+    .given (new MockIncomingMessage ("POST", "/users"), new MockServerResponse)
+        .returnsInstanceOf ("TestService.Context")
+        .expectingPropertyToBeOfType ("result.response", "http.responses.NotFound")
+        .commit ()
 ;
 
 
 test.method ("http.service.plugins.SocketIoServer", "preDispatch")
-    .should ("set context.writeEnabled to false if socket.io will handle the request")
+    .should ("will call context.noop () if socket.io will handle the request")
         .given (
             { socketIo: { handleRequest: function () { return true; } } },
-            {}
+            { noop: nit.noop }
         )
-        .expectingPropertyToBe ("args.1.writeEnabled", false)
+        .spy ("args.1", "noop")
+        .expectingPropertyToBe ("spies.0.invocations.length", 1)
         .commit ()
 
-    .should ("not update context.writeEnabled if socket.io will not handle the request")
+    .should ("will not call context.noop () if socket.io will not handle the request")
         .given (
             { socketIo: { handleRequest: function () { return false; } } },
-            {}
+            { noop: nit.noop }
         )
-        .expectingPropertyToBe ("args.1.writeEnabled")
+        .spy ("args.1", "noop")
+        .expectingPropertyToBe ("spies.0.invocations.length", 0)
         .commit ()
 ;
 
@@ -249,4 +294,17 @@ test.method ("http.service.plugins.SocketIoServer", "onUpgrade")
     .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "req")
     .expectingPropertyToBe ("mocks.0.invocations.0.args.1", "socket")
     .commit ()
+;
+
+
+test.method ("http.service.plugins.SocketIoServer", "onStop")
+    .should ("stop the IO server")
+        .given (nit.set ({}, "socketIo.io.close", nit.noop))
+        .spy ("args.0.socketIo.io", "close")
+        .expectingPropertyToBe ("spies.0.invocations.length", 1)
+        .commit ()
+
+    .given ({})
+        .returns ()
+        .commit ()
 ;
