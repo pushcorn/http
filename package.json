@@ -1,6 +1,6 @@
 {
     "name": "@pushcorn/http",
-    "version": "0.9.5",
+    "version": "0.9.6",
     "description": "The HTTP module for nit.",
     "license": "ISC",
     "files": [
