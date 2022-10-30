@@ -63,7 +63,7 @@ test.command ("http.commands.Server")
         })
         .after (async function ()
         {
-            let res = await no_http_get ("http://localhost/hello");
+            let res = await no_http_get ("http://127.0.0.1/hello");
 
             this.requests.push (
             {
@@ -73,7 +73,7 @@ test.command ("http.commands.Server")
         })
         .after (async function ()
         {
-            let res = await no_http_get ("http://localhost/hello?name=John");
+            let res = await no_http_get ("http://127.0.0.1/hello?name=John");
 
             this.requests.push (
             {
@@ -83,7 +83,7 @@ test.command ("http.commands.Server")
         })
         .after (async function ()
         {
-            let res = await no_http_get ("http://localhost/ping");
+            let res = await no_http_get ("http://127.0.0.1/ping");
 
             this.requests.push (
             {
@@ -93,7 +93,7 @@ test.command ("http.commands.Server")
         })
         .after (async function ()
         {
-            let client = this.client = new SocketIo.Client ("http://localhost",
+            let client = this.client = new SocketIo.Client ("http://127.0.0.1",
             {
                 path: "/ws",
                 extraHeaders:
