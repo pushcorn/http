@@ -1,6 +1,6 @@
 {
     "name": "@pushcorn/http",
-    "version": "0.9.6",
+    "version": "0.9.7",
     "description": "The HTTP module for nit.",
     "license": "ISC",
     "files": [
@@ -19,12 +19,12 @@
         }
     },
     "dependencies": {
-        "formidable": "2.0.1",
+        "formidable": "2.1.1",
         "negotiator": "0.6.3",
-        "qs": "6.11.0",
-        "raw-body": "2.5.1",
-        "socket.io": "4.5.3",
-        "socket.io-client": "4.5.3",
+        "qs": "6.11.1",
+        "raw-body": "2.5.2",
+        "socket.io": "4.6.1",
+        "socket.io-client": "4.6.1",
         "vary": "1.1.2"
     }
 }

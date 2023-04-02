@@ -63,8 +63,17 @@ test.method ("http.Server", "log")
     .should ("log the message to the console")
         .given ("error.unknown_error")
         .mock (nit, "log")
+        .after (function ()
+        {
+            let server = this.object;
+            let req = new MockIncomingMessage ("GET", "/users", { headers: { "host": "abc.def.com" } });
+            let res = new MockServerResponse;
+
+            server.info (server.logFormat, { req, res });
+        })
         .returnsInstanceOf ("http.Server")
-        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "error.unknown_error")
+        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", / error\.unknown_error$/)
+        .expectingPropertyToBe ("mocks.0.invocations.1.args.0", /\[INFO].*\[abc.d.c]/)
         .commit ()
 ;
 
@@ -187,7 +196,8 @@ test.method ("http.Server", "dispatch")
             }
             ];
         })
-        .mock ("object", "log")
+        .mock ("object", "error")
+        .mock ("object", "info")
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "error.unexpected_error")
         .expectingPropertyToBe ("mocks.0.invocations.0.args.1.message", "catch this!")
@@ -218,9 +228,39 @@ test.method ("http.Server", "dispatch")
             }
             ];
         })
-        .mock ("object", "log")
+        .mock ("object", "error")
+        .mock ("object", "info")
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "error.unexpected_error")
+        .commit ()
+
+    .should ("log the error if http.Context construction failed")
+        .given (
+            new MockIncomingMessage ("GET", "/users", { headers: { host: "dashboard.pushcorn.com" } }),
+            new MockServerResponse ()
+        )
+        .up (function ()
+        {
+            const DashboardService = nit.defineClass ("test.services.DashboardService", "http.Service")
+                .defineContext (Context =>
+                {
+                    Context.postConstruct (function ()
+                    {
+                        throw new Error ("CONSTRUCTION_ERROR");
+                    });
+                })
+            ;
+
+            this.createArgs =
+            [
+            {
+                services: [new DashboardService ("dashboard.pushcorn.com")]
+            }
+            ];
+        })
+        .mock (nit, "log")
+        .returns ()
+        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /CONSTRUCTION_ERROR/)
         .commit ()
 
     .should ("convert the error to the proper response if the error is an integer")
@@ -244,6 +284,7 @@ test.method ("http.Server", "dispatch")
             }
             ];
         })
+        .mock ("object", "info")
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBeOfType ("result.response", "http.responses.Forbidden")
         .commit ()
@@ -271,6 +312,7 @@ test.method ("http.Server", "dispatch")
             }
             ];
         })
+        .mock ("object", "info")
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBeOfType ("result.response", "UnknowError")
         .commit ()
@@ -297,6 +339,7 @@ test.method ("http.Server", "dispatch")
             }
             ];
         })
+        .mock ("object", "info")
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBeOfType ("ctx.response", "http.responses.NotFound")
         .expectingMethodToReturnValue ("args.1.data.toString", nit.new ("http.responses.NotFound").toBody (http.Context.create ("GET", "/")))
@@ -325,6 +368,7 @@ test.method ("http.Server", "dispatch")
             }
             ];
         })
+        .mock ("object", "info")
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBeOfType ("ctx.response", "http.responses.Unauthorized")
         .commit ()
@@ -334,6 +378,7 @@ test.method ("http.Server", "dispatch")
             new MockIncomingMessage ("GET", "/users", { headers: { host: "dashboard.pushcorn.com" } }),
             new MockServerResponse ()
         )
+        .mock ("object", "info")
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBeOfType ("result.response", "http.responses.NotFound")
         .expectingMethodToReturnValue ("args.1.data.toString", nit.new ("http.responses.NotFound").toBody (http.Context.create ("GET", "/users")))
@@ -359,6 +404,7 @@ test.method ("http.Server", "dispatch")
             await listener ();
             await nit.sleep (10);
         })
+        .mock ("object", "info")
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBe ("object.sockets", {})
         .commit ()
@@ -391,7 +437,7 @@ test.method ("http.Server", "start")
                 return new MockNodeHttpServer ();
             }
         })
-        .mock ("object", "log")
+        .mock ("object", "info")
         .after (function ()
         {
             this.object.nodeServer.removeAllListeners ();
@@ -448,7 +494,7 @@ test.method ("http.Server", "start")
                 return new MockNodeHttpServer ();
             }
         })
-        .mock ("object", "log")
+        .mock ("object", "info")
         .after (function ()
         {
             this.object.nodeServer.removeAllListeners ("connection");
@@ -493,7 +539,7 @@ test.method ("http.Server", "start")
                 return new MockNodeHttpServer ();
             }
         })
-        .mock ("object", "log")
+        .mock ("object", "info")
         .mock ("object", "dispatch")
         .mock ("createArgs.0.services.0", "upgrade")
         .returns ()
@@ -547,7 +593,7 @@ test.method ("http.Server", "start")
                 return new MockNodeHttpServer ();
             }
         })
-        .mock ("object", "log")
+        .mock ("object", "info")
         .returns ()
         .after (async function ()
         {
@@ -586,7 +632,7 @@ test.method ("http.Server", "start")
                 return new MockNodeHttpServer ();
             }
         })
-        .mock ("object", "log")
+        .mock ("object", "info")
         .returns ()
         .after (async function ()
         {

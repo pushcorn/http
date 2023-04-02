@@ -46,13 +46,15 @@ const TestService = nit.defineClass ("TestService", "http.Service")
 
 test.command ("http.commands.Server")
     .should ("start the HTTP server")
-        .given ({ services: ["@TestService"] })
+        .given ({ port: 0, services: ["@TestService"] })
         .after (async function ()
         {
             let lock = nit.Deferred ();
 
             this.object.server.nodeServer.on ("listening", () =>
             {
+                this.port = this.object.server.nodeServer.address ().port;
+
                 lock.resolve ();
             });
 
@@ -63,7 +65,7 @@ test.command ("http.commands.Server")
         })
         .after (async function ()
         {
-            let res = await no_http_get ("http://127.0.0.1/hello");
+            let res = await no_http_get (`http://127.0.0.1:${this.port}/hello`);
 
             this.requests.push (
             {
@@ -73,7 +75,7 @@ test.command ("http.commands.Server")
         })
         .after (async function ()
         {
-            let res = await no_http_get ("http://127.0.0.1/hello?name=John");
+            let res = await no_http_get (`http://127.0.0.1:${this.port}/hello?name=John`);
 
             this.requests.push (
             {
@@ -83,7 +85,7 @@ test.command ("http.commands.Server")
         })
         .after (async function ()
         {
-            let res = await no_http_get ("http://127.0.0.1/ping");
+            let res = await no_http_get (`http://127.0.0.1:${this.port}/ping`);
 
             this.requests.push (
             {
@@ -93,7 +95,7 @@ test.command ("http.commands.Server")
         })
         .after (async function ()
         {
-            let client = this.client = new SocketIo.Client ("http://127.0.0.1",
+            let client = this.client = new SocketIo.Client (`http://127.0.0.1:${this.port}`,
             {
                 path: "/ws",
                 extraHeaders:
@@ -128,11 +130,13 @@ test.command ("http.commands.Server")
             await this.client.disconnect ();
             await this.object.server.stop ();
         })
-        .mock (http.Server.prototype, "log")
-        .mock (TestService.prototype, "log")
+        .mock (http.Server.prototype, "info")
+        .mock (TestService.prototype, "error")
+        .mock (http.Server.prototype, "error")
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "info.server_started")
         .expectingPropertyToBe ("mocks.1.invocations.0.args.0", "error.unexpected_error")
-        .expectingPropertyToBe ("context.input.port", 80)
+        .expectingPropertyToBe ("context.input.port", 0)
+        .expecting ("port", true, (s) => s.port > 80)
         .expectingPropertyToBeOfType ("object.server.services.0", "TestService")
         .expectingPropertyToBe ("requests.0.status", 500)
         .expectingPropertyToBe ("requests.0.body.@name", "InternalServerError")

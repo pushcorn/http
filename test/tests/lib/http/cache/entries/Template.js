@@ -30,7 +30,7 @@ This is page two!
 
 `)
     .expectingPropertyToBe ("spies.0.invocations.length", 1)
-    .expectingPropertyToBe ("spies.1.invocations.length", 3)
+    .expectingPropertyToBe ("spies.1.invocations.length", 4)
     .expectingPropertyToBe ("args.0.httpContext.responseHeaders.Last-Modified", /^2022/)
     .commit ()
 ;
