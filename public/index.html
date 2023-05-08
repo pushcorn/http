@@ -38,5 +38,14 @@
                 <code>nit server {% server.version %}</code>
             </div>
         </div>
+        <script src="/lib/nit.js"></script>
+        {%# service.socketIo %}
+        <script src="{% path %}/socket.io.min.js"></script>
+        <script src="/lib/http/SocketIoClient.js"></script>
+        <script>nit.config ("http.SocketIoClient.path", "{% service.socketIo.path %}")</script>
+        {%/%}
+        {%#? service.liveReloadEnabled %}
+        <script src="/lib/http/LiveReload.js"></script>
+        {%/%}
     </body>
 </html>

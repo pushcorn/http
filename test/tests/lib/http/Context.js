@@ -2,8 +2,6 @@ const MockIncomingMessage = nit.require ("http.mocks.IncomingMessage");
 const MockServerResponse = nit.require ("http.mocks.ServerResponse");
 const http = nit.require ("http");
 
-nit.defineClass ("test.handlers.Noop", "http.Handler");
-
 
 function createTestContext ()
 {
@@ -18,7 +16,6 @@ test.object ("http.Context")
         .expectingPropertyToBe ("result.method", "GET")
         .expectingPropertyToBe ("result.path", "/users")
         .expectingPropertyToBe ("result.url", "/users?a=b")
-        .expectingPropertyToBe ("result.queryParams", { a: "b" })
         .expectingMethodToReturnValueOfType ("result.responseHeader", "http.Context", "time", 1000)
         .expectingMethodToReturnValue ("result.responseHeader", 1000, "time")
         .expectingMethodToReturnValue ("result.responseHeader", undefined, "x-time")
@@ -67,7 +64,7 @@ test.method (createTestContext (), "create", true)
         .given ("GET", "/users", { headers: { a: "b" } })
         .after (async function ()
         {
-            await this.result.parseRequest ();
+            await this.result.readRequest ();
         })
         .returnsInstanceOf ("http.Context")
         .expectingPropertyToBe ("result.method", "GET")
@@ -84,15 +81,12 @@ test.method (createTestContext (), "create", true)
 ;
 
 
-test.method (createTestContext (), "parseRequest",
+test.method (createTestContext (), "readRequest",
     {
         createArgs:
         [
             new MockIncomingMessage ("GET", "/users?a=b"),
-            new MockServerResponse,
-            {
-                route: nit.new ("http.Route", "GET", "/users")
-            }
+            new MockServerResponse
         ]
     })
     .should ("parse the request headers and cookies")
@@ -111,7 +105,7 @@ test.method (createTestContext (), "parseRequest",
 
             this.object.appliedRequestFilters = [];
 
-            const InspectSecond = http.request.defineFilter ("test.requset.filters.InspectSecond")
+            const InspectSecond = http.defineRequestFilter ("InspectSecond")
                 .orderAfter ("InspectFirst")
                 .method ("apply", function (ctx)
                 {
@@ -119,14 +113,14 @@ test.method (createTestContext (), "parseRequest",
                 })
             ;
 
-            const InspectFirst = http.request.defineFilter ("test.requset.filters.InspectFirst")
+            const InspectFirst = http.defineRequestFilter ("InspectFirst")
                 .method ("apply", function (ctx)
                 {
                     ctx.appliedRequestFilters.push (this.constructor.simpleName);
                 })
             ;
 
-            const InspectThird = http.request.defineFilter ("test.requset.filters.InspectThird")
+            const InspectThird = http.defineRequestFilter ("InspectThird")
                 .condition ("http:custom", () => false)
                 .method ("apply", function (ctx)
                 {
@@ -135,34 +129,44 @@ test.method (createTestContext (), "parseRequest",
             ;
 
             this.class
-                .requestFilter (new InspectThird)
-                .requestFilter (new InspectSecond)
-                .requestFilter (new InspectFirst)
+                .requestfilter (new InspectThird)
+                .requestfilter (new InspectSecond)
+                .requestfilter (new InspectFirst)
             ;
         })
-        .returnsInstanceOf ("http.Context")
-        .expectingPropertyToBe ("result.cookieParams", { a: "b", c: "d", e: "f" })
-        .expectingPropertyToBe ("result.headerParams", { "access-token": "12345" })
-        .expectingPropertyToBe ("result.appliedRequestFilters", ["InspectFirst", "InspectSecond"])
+        .returns ()
+        .expectingPropertyToBe ("object.queryParams", { a: "b" })
+        .expectingPropertyToBe ("object.cookieParams", { a: "b", c: "d", e: "f" })
+        .expectingPropertyToBe ("object.headerParams", { "access-token": "12345" })
+        .expectingPropertyToBe ("object.appliedRequestFilters", ["InspectFirst", "InspectSecond"])
         .commit ()
 ;
 
 
-test.method ("http.Context", "parseRequest",
+test.method ("http.Context", "readRequest",
     {
         createArgs:
         [
-            new MockIncomingMessage ("GET", "/users?a=b"),
+            new MockIncomingMessage ("GET", "/users/123?a=b"),
             new MockServerResponse
         ]
     })
     .should ("merge requestBody to formParams if available")
         .before (function ()
         {
+            const User = nit.defineClass ("UserRequest", "http.Request")
+                .path ("<id>", "string")
+            ;
+
+            this.object.pathParser = nit.new ("http.PathParser", "/users/:id");
             this.object.requestBody = { a: 9 };
+            this.args.push (User);
         })
-        .returnsInstanceOf ("http.Context")
-        .expectingPropertyToBe ("result.formParams", { a: 9 })
+        .returns ()
+        .expectingPropertyToBe ("object.pathParams", { id: "123" })
+        .expectingPropertyToBe ("object.formParams", { a: 9 })
+        .expectingPropertyToBeOfType ("object.request", "UserRequest")
+        .expectingPropertyToBe ("object.request.id", "123")
         .commit ()
 ;
 
@@ -289,10 +293,7 @@ test.method ("http.Context", "send")
         this.createArgs =
         [
             new MockIncomingMessage ("GET", "/users?a=b"),
-            new MockServerResponse,
-            {
-                handler: nit.new ("test.handlers.Noop")
-            }
+            new MockServerResponse
         ];
     })
     .snapshot ()
@@ -321,19 +322,20 @@ test.method ("http.Context", "send")
     .should ("throw if a response has not been set")
         .throws ("error.response_not_set")
         .commit ()
+;
 
-    .should ("throw if the response is not declared by the handler")
-        .before (function ()
-        {
-            const Handler = nit.defineClass ("Handler", "http.Handler")
-                  .response ("http:request-succeeded")
-            ;
 
-            this.object.handler = new Handler ();
-        })
-        .given ("http:request-failed")
-        .throws ("error.response_not_allowed")
-        .commit ()
+test.method ("http.Context", "noop",
+    {
+        createArgs:
+        [
+            new MockIncomingMessage ("GET", "/users?a=b"),
+            new MockServerResponse
+        ]
+    })
+    .should ("send the noop response")
+    .expectingPropertyToBeOfType ("object.response", "http.responses.Noop")
+    .commit ()
 ;
 
 
@@ -413,7 +415,7 @@ test.method (createTestContext (), "writeResponse",
             this.object.response = nit.new ("http.responses.RequestSucceeded");
             this.object.responseHeader ("x-server", "nit");
 
-            const FilterTwo = http.response.defineFilter ("test.response.filters.FilterTwo")
+            const FilterTwo = http.defineResponseFilter ("FilterTwo")
                 .orderAfter ("FilterOne")
                 .method ("apply", function (ctx)
                 {
@@ -421,14 +423,14 @@ test.method (createTestContext (), "writeResponse",
                 })
             ;
 
-            const FilterOne = http.response.defineFilter ("test.response.filters.FilterOne")
+            const FilterOne = http.defineResponseFilter ("FilterOne")
                 .method ("apply", function (ctx)
                 {
                     ctx.appliedResponseFilters.push (this.constructor.simpleName);
                 })
             ;
 
-            const FilterThree = http.response.defineFilter ("test.response.filters.FilterThree")
+            const FilterThree = http.defineResponseFilter ("FilterThree")
                 .orderAfter ("FilterTwo")
                 .condition ("http:custom", function ()
                 {
@@ -441,9 +443,9 @@ test.method (createTestContext (), "writeResponse",
             ;
 
             this.class
-                .responseFilter (new FilterTwo)
-                .responseFilter (new FilterOne)
-                .responseFilter (new FilterThree)
+                .responsefilter (new FilterTwo)
+                .responsefilter (new FilterOne)
+                .responsefilter (new FilterThree)
             ;
         })
         .returnsInstanceOf ("http.Context")

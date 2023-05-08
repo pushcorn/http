@@ -1,245 +1,249 @@
 const http = nit.require ("http");
-const Service = nit.require ("http.Service")
-    .staticGetter ("TestService", function ()
+const Context = nit.require ("http.Context");
+const Service = nit.require ("http.Service");
+
+
+function newServiceClass ()
+{
+    return Service.defineSubclass (Service.name, true);
+}
+
+
+test.object (Service.ServicePlugin)
+    .should ("define service lifecycle methods")
+    .expectingPropertyToBeOfType ("class.prototype.preInit", "function")
+    .expectingPropertyToBeOfType ("class.prototype.postInit", "function")
+    .expectingPropertyToBeOfType ("class.prototype.preStart", "function")
+    .expectingPropertyToBeOfType ("class.prototype.postStart", "function")
+    .expectingPropertyToBeOfType ("class.prototype.preStop", "function")
+    .expectingPropertyToBeOfType ("class.prototype.postStop", "function")
+    .expectingPropertyToBeOfType ("class.prototype.preUpgrade", "function")
+    .expectingPropertyToBeOfType ("class.prototype.postUpgrade", "function")
+    .expectingPropertyToBeOfType ("class.prototype.preDispatch", "function")
+    .expectingPropertyToBeOfType ("class.prototype.postDispatch", "function")
+    .commit ()
+;
+
+
+test.object (newServiceClass (), true)
+    .should ("provide a default context class")
+    .expectingPropertyToBeOfType ("result.contextClass.prototype", http.Context)
+    .commit ()
+;
+
+
+test.method (newServiceClass (), "init", true)
+    .should ("register the init handler")
+    .given (nit.createFunction ("noop"))
+    .returnsInstanceOf ("function")
+    .expecting ("the handler is registered", true, (s) => s.args[0] == s.class[Service.kInit])
+    .commit ()
+;
+
+
+test.method (newServiceClass (), "start", true)
+    .should ("register the start handler")
+    .given (nit.createFunction ("noop"))
+    .returnsInstanceOf ("function")
+    .expecting ("the handler is registered", true, (s) => s.args[0] == s.class[Service.kStart])
+    .commit ()
+;
+
+
+test.method (newServiceClass (), "stop", true)
+    .should ("register the stop handler")
+    .given (nit.createFunction ("noop"))
+    .returnsInstanceOf ("function")
+    .expecting ("the handler is registered", true, (s) => s.args[0] == s.class[Service.kStop])
+    .commit ()
+;
+
+
+test.method (newServiceClass (), "upgrade", true)
+    .should ("register the upgrade handler")
+    .given (nit.createFunction ("noop"))
+    .returnsInstanceOf ("function")
+    .expecting ("the handler is registered", true, (s) => s.args[0] == s.class[Service.kUpgrade])
+    .commit ()
+;
+
+
+test.method (newServiceClass (), "dispatch", true)
+    .should ("register the dispatch handler")
+    .given (nit.createFunction ("noop"))
+    .returnsInstanceOf ("function")
+    .expecting ("the handler is registered", true, (s) => s.args[0] == s.class[Service.kDispatch])
+    .commit ()
+;
+
+
+test.method (newServiceClass (), "http.Service.dispatch", true)
+    .should ("find a suitable middleware to run")
+    .given (Context.create ("GET", "/two"))
+    .before (function ()
     {
-        return this.defineSubclass (this.name, true);
+        let service = new this.class;
+
+        const Middleware1 = http.defineMiddleware ("Middleware1", true)
+            .condition ("http:request-path", "/one")
+            .run (() =>
+            {
+                this.handledBy = "Middleware1";
+            })
+        ;
+
+        const Middleware2 = http.defineMiddleware ("Middleware2", true)
+            .condition ("http:request-path", "/two")
+            .run (() =>
+            {
+                this.handledBy = "Middleware2";
+            })
+        ;
+
+        service.middlewares = [new Middleware1, new Middleware2];
+
+        this.class[Service.kDispatch] = this.class[Service.kDispatch].bind (service);
     })
+    .expectingPropertyToBe ("handledBy", "Middleware2")
+    .commit ()
 ;
 
 
-nit.defineClass ("test.handlers.Noop", "http.Handler");
+test.method (newServiceClass (), "init")
+    .should ("init the service")
+    .before (function ()
+    {
+        const Plugin = Service.defineServicePlugin ("Plugin", true)
+            .preInit (() => this.preInit = true)
+            .postInit (() => this.postInit = true)
+        ;
 
-
-test.method (Service.TestService, "endpoint", true)
-    .should ("add an endpoint declaration to the service")
-        .given ("POST", "/resources", "test:noop")
-        .expectingPropertyToBe ("class.endpoints.length", 1)
-        .expectingPropertyToBe ("class.endpoints.0.route.method", "POST")
-        .expectingPropertyToBe ("class.endpoints.0.route.path", "/resources")
-        .expectingPropertyToBeOfType ("class.endpoints.0.handler", "test.handlers.Noop")
-        .expectingMethodToReturnValue ("class.endpoints.0.matches", true, { method: "POST", path: "/resources" })
-        .expectingMethodToReturnValue ("class.endpoints.0.matches", false, { method: "GET", path: "/resources" })
-        .expectingMethodToReturnValue ("class.endpoints.0.matches", false, { method: "POST", path: "/users" })
-        .commit ()
-
-    .given ("POST", "/resources", nit.new ("test.handlers.Noop"))
-        .expectingPropertyToBe ("class.endpoints.length", 2)
-        .expectingPropertyToBeOfType ("class.endpoints.1.handler", "test.handlers.Noop")
-        .commit ()
-
-    .given ("GET", "/version", function (ctx) { ctx.send ("http:request-succeeded"); })
-        .expectingPropertyToBe ("class.endpoints.length", 3)
-        .expectingPropertyToBeOfType ("class.endpoints.2.handler", "FuncHandler")
-        .commit ()
+        this.class
+            .serviceplugin (new Plugin)
+            .init (() => this.initCalled = true)
+        ;
+    })
+    .given (new http.Server ())
+    .returnsInstanceOf (Service)
+    .expectingPropertyToBe ("preInit", true)
+    .expectingPropertyToBe ("postInit", true)
+    .expectingPropertyToBe ("initCalled", true)
+    .commit ()
 ;
 
 
-test.method (Service.TestService, "defineContext", true)
-    .should ("define a service context")
-        .given (function (cls)
-        {
-            cls.field ("db", "any");
-        })
-        .returnsInstanceOf (Function)
-        .expectingPropertyToBe ("object.Context.name", "http.Service.Context")
-        .commit ()
+test.method (newServiceClass (), "start")
+    .should ("start the service")
+    .before (function ()
+    {
+        const Plugin = Service.defineServicePlugin ("Plugin", true)
+            .preStart (() => this.preStart = true)
+            .postStart (() => this.postStart = true)
+        ;
+
+        this.class
+            .serviceplugin (new Plugin)
+            .start (() => this.startCalled = true)
+        ;
+    })
+    .returnsInstanceOf (Service)
+    .expectingPropertyToBe ("preStart", true)
+    .expectingPropertyToBe ("postStart", true)
+    .expectingPropertyToBe ("startCalled", true)
+    .commit ()
 ;
 
 
-let certsDir = nit.new ("nit.Dir", test.TEST_PROJECT_PATH).subdir ("resources/certs");
+test.method (newServiceClass (), "stop")
+    .should ("stop the service")
+    .before (function ()
+    {
+        const Plugin = Service.defineServicePlugin ("Plugin", true)
+            .preStop (() => this.preStop = true)
+            .postStop (() => this.postStop = true)
+        ;
 
-
-test.object (Service.TestService, { recreate: true })
-    .reset ("is a container for handlers")
-        .given ("a.pushcorn.com", "b.pushcorn.com")
-        .expectingPropertyToBe ("result.hostnameMatchers.length", 2)
-        .expectingPropertyToBe ("result.secureContext", undefined)
-        .commit ()
-
-    .given ("*",
-        {
-            cert: certsDir.join ("pushcorn.com.crt"),
-            key: certsDir.join ("pushcorn.com.key")
-        })
-        .expectingPropertyToBeOfType ("result.secureContext", "http.SecureContext")
-        .commit ()
+        this.class
+            .serviceplugin (new Plugin)
+            .stop (() => this.stopCalled = true)
+        ;
+    })
+    .returnsInstanceOf (Service)
+    .expectingPropertyToBe ("preStop", true)
+    .expectingPropertyToBe ("postStop", true)
+    .expectingPropertyToBe ("stopCalled", true)
+    .commit ()
 ;
 
 
-test.method (Service.TestService, "get", true)
-    .should ("add a GET endpoint")
-        .given ("/users", "test:noop")
-        .expectingPropertyToBe ("result.endpoints.0.route.method", "GET")
-        .expectingPropertyToBe ("result.endpoints.0.route.path", "/users")
-        .commit ()
+test.method (newServiceClass (), "upgrade")
+    .should ("upgrade the service")
+    .before (function ()
+    {
+        const Plugin = Service.defineServicePlugin ("Plugin", true)
+            .preUpgrade (() => this.preUpgrade = true)
+            .postUpgrade (() => this.postUpgrade = true)
+        ;
+
+        this.class
+            .serviceplugin (new Plugin)
+            .upgrade (() => this.upgradeCalled = true)
+        ;
+    })
+    .returnsInstanceOf (Service)
+    .expectingPropertyToBe ("preUpgrade", true)
+    .expectingPropertyToBe ("postUpgrade", true)
+    .expectingPropertyToBe ("upgradeCalled", true)
+    .commit ()
 ;
 
 
-test.method (Service.TestService, "post", true)
-    .should ("add a POST endpoint")
-        .given ("/users", "test:noop")
-        .expectingPropertyToBe ("result.endpoints.0.route.method", "POST")
-        .expectingPropertyToBe ("result.endpoints.0.route.path", "/users")
-        .commit ()
+test.method (newServiceClass (), "dispatch")
+    .should ("dispatch the request")
+    .before (function ()
+    {
+        const Plugin = Service.defineServicePlugin ("Plugin", true)
+            .preDispatch (() => this.preDispatch = true)
+            .postDispatch (() => this.postDispatch = true)
+        ;
+
+        this.class
+            .serviceplugin (new Plugin)
+            .dispatch (() => this.dispatchCalled = true)
+        ;
+    })
+    .given (Context.create ())
+    .returnsInstanceOf (Service)
+    .expectingPropertyToBe ("preDispatch", true)
+    .expectingPropertyToBe ("postDispatch", true)
+    .expectingPropertyToBe ("dispatchCalled", true)
+    .commit ()
 ;
 
 
-test.method (Service.TestService, "put", true)
-    .should ("add a PUT endpoint")
-        .given ("/users/1", "test:noop")
-        .expectingPropertyToBe ("result.endpoints.0.route.method", "PUT")
-        .expectingPropertyToBe ("result.endpoints.0.route.path", "/users/1")
-        .commit ()
-;
+test.method (newServiceClass (), "dispatch")
+    .should ("skip the dispatch callback if the response is set by a plugin")
+    .before (function ()
+    {
+        const Plugin = Service.defineServicePlugin ("Plugin", true)
+            .preDispatch ((service, ctx) =>
+            {
+                ctx.send ("http:noop");
 
+                this.preDispatch = true;
+            })
+            .postDispatch (() => this.postDispatch = true)
+        ;
 
-test.method (Service.TestService, "delete", true)
-    .should ("add a DELETE endpoint")
-        .given ("/users/1", "test:noop")
-        .expectingPropertyToBe ("result.endpoints.0.route.method", "DELETE")
-        .expectingPropertyToBe ("result.endpoints.0.route.path", "/users/1")
-        .commit ()
-;
-
-
-test.method (Service.TestService, "head", true)
-    .should ("add a HEAD endpoint")
-        .given ("/users/1", "test:noop")
-        .expectingPropertyToBe ("result.endpoints.0.route.method", "HEAD")
-        .expectingPropertyToBe ("result.endpoints.0.route.path", "/users/1")
-        .commit ()
-;
-
-
-test.method (Service.TestService, "getPriority")
-    .should ("return the max priority of the specified hostname patterns")
-        .up (function ()
-        {
-            this.createArgs = ["*.pushcorn.com"];
-        })
-        .given ("a.pushcorn.com")
-        .returns (2)
-        .commit ()
-
-    .given ("a.pushcorn.com")
-        .up (function ()
-        {
-            this.createArgs = ["*", "*.pushcorn.com"];
-        })
-        .returns (2)
-        .commit ()
-
-    .given ("a.pushcorn.com")
-        .up (function ()
-        {
-            this.createArgs = ["*"];
-        })
-        .returns (1)
-        .commit ()
-
-    .given ("a.pushcorn.com")
-        .up (function ()
-        {
-            this.createArgs = ["b.pushcorn.com"];
-        })
-        .returns (0)
-        .commit ()
-;
-
-
-test.method (Service.TestService, "dispatch")
-    .should ("run the plugins and handler for the request")
-        .given (http.Context.create ("POST", "/users", { headers: { a: 1 } }))
-        .before (function ()
-        {
-            const Plugin = nit.defineClass ("Plugin", "http.service.Plugin", true);
-
-            this.plugin = new Plugin;
-            this.class.endpoint ("GET", "/users/:id", "test:noop");
-            this.class.endpoint ("POST", "/users", "test:noop");
-            this.class.servicePlugin (this.plugin);
-        })
-        .mock ("plugin", "preDispatch", function () {})
-        .mock ("plugin", "postDispatch", function () {})
-        .mock ("class.endpoints.0.handler", "run")
-        .mock ("class.endpoints.1.handler", "run")
-        .returns ()
-        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
-        .expectingPropertyToBeOfType ("mocks.0.invocations.0.args.0", "http.Service")
-        .expectingPropertyToBeOfType ("mocks.0.invocations.0.args.1", "http.Context")
-        .expectingPropertyToBe ("mocks.1.invocations.length", 1)
-        .expectingPropertyToBeOfType ("mocks.1.invocations.0.args.0", "http.Service")
-        .expectingPropertyToBeOfType ("mocks.1.invocations.0.args.1", "http.Context")
-        .expectingPropertyToBe ("mocks.2.invocations.length", 0)
-        .expectingPropertyToBe ("mocks.3.invocations.length", 1)
-        .commit ()
-;
-
-
-test.method (Service.TestService, "init")
-    .should ("initalize the service and the plugins")
-        .given (nit.new ("http.Server"))
-        .before (function ()
-        {
-            const Plugin = nit.defineClass ("Plugin", "http.service.Plugin", true);
-
-            this.plugin = new Plugin;
-            this.class.servicePlugin (this.plugin);
-        })
-        .mock ("plugin", "onInit", function () {})
-        .returns ()
-        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
-        .commit ()
-;
-
-
-test.method (Service.TestService, "start")
-    .should ("start the service and the plugins")
-        .given (nit.new ("http.Server"))
-        .before (function ()
-        {
-            const Plugin = nit.defineClass ("Plugin", "http.service.Plugin", true);
-
-            this.plugin = new Plugin;
-            this.class.servicePlugin (this.plugin);
-        })
-        .mock ("plugin", "onStart", function () {})
-        .returns ()
-        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
-        .commit ()
-;
-
-
-test.method (Service.TestService, "stop")
-    .should ("stop the service and the plugins")
-        .given (nit.new ("http.Server"))
-        .before (function ()
-        {
-            const Plugin = nit.defineClass ("Plugin", "http.service.Plugin", true);
-
-            this.plugin = new Plugin;
-            this.class.servicePlugin (this.plugin);
-        })
-        .mock ("plugin", "onStop", function () {})
-        .returns ()
-        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
-        .commit ()
-;
-
-
-test.method (Service.TestService, "upgrade")
-    .should ("invoke plugins when the client request an upgrade")
-        .given ("req", "socket", "head")
-        .before (function ()
-        {
-            const Plugin = nit.defineClass ("Plugin", "http.service.Plugin", true);
-
-            this.plugin = new Plugin;
-            this.class.servicePlugin (this.plugin);
-        })
-        .mock ("plugin", "onUpgrade", function () {})
-        .returns ()
-        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
-        .expectingPropertyToBe ("mocks.0.invocations.0.args", [{}, "req", "socket", "head"])
-        .commit ()
+        this.class
+            .serviceplugin (new Plugin)
+            .dispatch (() => this.dispatchCalled = true)
+        ;
+    })
+    .given (Context.create ())
+    .returnsInstanceOf (Service)
+    .expectingPropertyToBe ("preDispatch", true)
+    .expectingPropertyToBe ("postDispatch", true)
+    .expectingPropertyToBe ("dispatchCalled", undefined)
+    .commit ()
 ;

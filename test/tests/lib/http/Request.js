@@ -1,3 +1,4 @@
+const Context = nit.require ("http.Context");
 const Request = nit.require ("http.Request")
     .staticGetter ("testClass", function ()
     {
@@ -99,5 +100,25 @@ test.method (Request.testClass, "query", true)
                 && param.source == "query"
             ;
         })
+        .commit ()
+;
+
+
+test.method (Request.testClass, "build", true)
+    .should ("build the request for the given context")
+        .before (function (ctx)
+        {
+            this.class
+                .path ("id", "string")
+                .parameter ("a", "string")
+            ;
+
+            ctx.pathParser = nit.new ("http.PathParser", "/users/:id");
+            ctx.readRequest ();
+        })
+        .given (Context.create ("GET", "/users/123?a=b"))
+        .returnsInstanceOf ("http.Request")
+        .expectingPropertyToBe ("result.id", "123")
+        .expectingPropertyToBe ("result.a", "b")
         .commit ()
 ;

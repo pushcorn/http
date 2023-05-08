@@ -1,6 +1,6 @@
 {
     "name": "@pushcorn/http",
-    "version": "0.9.8",
+    "version": "0.10.0",
     "description": "The HTTP module for nit.",
     "license": "ISC",
     "files": [
@@ -10,15 +10,19 @@
         "resources/**"
     ],
     "peerDependencies": {
-        "@pushcorn/nit": "github:pushcorn/nit#semver:^0.10.1",
-        "@pushcorn/ui": "github:pushcorn/ui#semver:^0.9.7"
+        "@pushcorn/nit": "github:pushcorn/nit#semver:^0.12.0",
+        "@pushcorn/ui": "github:pushcorn/ui#semver:^0.9.9"
     },
     "peerDependenciesMeta": {
+        "@pushcorn/nit": {
+            "optional": true
+        },
         "@pushcorn/ui": {
             "optional": true
         }
     },
     "dependencies": {
+        "chokidar": "3.5.3",
         "formidable": "2.1.1",
         "negotiator": "0.6.3",
         "qs": "6.11.1",

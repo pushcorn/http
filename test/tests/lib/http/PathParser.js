@@ -7,7 +7,7 @@ test.object ("http.PathParser")
 
 
 test.method ("http.PathParser", "parse", { createArgs: ["/users/:id"] })
-    .should ("parse the path %{args.0|format} into %{result} when the pattern is %{createArgs.0|format}")
+    .should ("parse the path %{args.0|format} into %{result}")
         .given ("/users/1234")
         .returns ({ id: "1234" })
         .commit ()

@@ -1,5 +1,5 @@
 test.method ("http.Condition", "onRegisterPlugin", true)
-    .should ("add the appliesTo method to the host class")
+    .should ("add the applicableTo method to the host class")
         .given (nit.defineClass ("Filter", true))
         .after (function ()
         {
@@ -19,9 +19,9 @@ test.method ("http.Condition", "onRegisterPlugin", true)
             Filter.condition (new TestCond);
 
             this.filter = new Filter;
-            this.isFilterApplicable = this.filter.appliesTo (nit.require ("http.Context").create ("GET", "/users"));
+            this.isFilterApplicable = this.filter.applicableTo (nit.require ("http.Context").create ("GET", "/users"));
         })
-        .expectingPropertyToBeOfType ("args.0.prototype.appliesTo", "function")
+        .expectingPropertyToBeOfType ("args.0.prototype.applicableTo", "function")
         .expectingPropertyToBe ("isFilterApplicable", true)
         .expectingPropertyToBeOfType ("checkCtx", "http.Context")
         .expectingPropertyToBeOfType ("checkOwner", "Filter")

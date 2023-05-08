@@ -31,6 +31,7 @@ test.object ("http.IncomingMessage")
             };
         })
         .expectingPropertyToBe ("result.hostname", "localhost")
+        .expectingPropertyToBe ("result.protocol", "http")
         .expectingPropertyToBe ("result.ip", "127.0.0.1")
         .expectingPropertyToBe ("result.realIp", "127.0.0.1")
         .expectingPropertyToBe ("result.userAgent", "nit")
@@ -42,10 +43,17 @@ test.object ("http.IncomingMessage")
         {
             let m = this.result;
 
-            m.headers = { host: "localhost", "x-forwarded-for": "1.2.3.4" };
+            m.headers =
+            {
+                host: "localhost",
+                "x-forwarded-for": "1.2.3.4",
+                "x-forwarded-proto": "https"
+            };
+
             m.socket = { remoteAddress: "127.0.0.1" };
         })
         .expectingPropertyToBe ("result.realIp", "1.2.3.4")
+        .expectingPropertyToBe ("result.protocol", "https")
         .expectingPropertyToBe ("result.userAgent", "")
         .expectingPropertyToBe ("result.contentType", "")
         .commit ()
@@ -68,9 +76,66 @@ test.object ("http.IncomingMessage")
 
             m.headers = {};
             m.httpVersion = "1.0";
-            m.socket = { remoteAddress: "127.0.0.1" };
+            m.socket = { remoteAddress: "127.0.0.1", encrypted: true };
         })
         .expectingPropertyToBe ("result.hostname", "127.0.0.1")
+        .expectingPropertyToBe ("result.host", "127.0.0.1")
+        .expectingPropertyToBe ("result.protocol", "https")
+        .commit ()
+
+    .should ("return an empty string for host if it cannot be determined")
+        .after (function ()
+        {
+            let m = this.result;
+
+            m.headers = {};
+            m.httpVersion = "1.0";
+            m.socket = {};
+        })
+        .expectingPropertyToBe ("result.host", "")
+        .commit ()
+
+    .should ("provide the parsed URL")
+        .after (function ()
+        {
+            let m = this.result;
+
+            m.url = "/users/123?a=b";
+            m.headers = {};
+            m.httpVersion = "1.0";
+            m.socket = {};
+        })
+        .expectingPropertyToBeOfType ("result.parsedUrl", "Url")
+        .expectingPropertyToBe ("result.path", "/users/123?a=b")
+        .expectingPropertyToBe ("result.pathname", "/users/123")
+        .expectingPropertyToBe ("result.query", { a: "b" })
+        .commit ()
+
+    .should ("update the parsed URL if the url property has been changed")
+        .after (function ()
+        {
+            let m = this.result;
+
+            m.url = "/";
+            m.headers = {};
+            m.httpVersion = "1.0";
+            m.socket = {};
+
+            this.path1 = m.path;
+            this.pathname1 = m.pathname;
+
+            m.url = "/a/b/?c=d";
+
+            this.path2 = m.path;
+            this.pathname2 = m.pathname;
+            this.query2 = m.query;
+        })
+        .expectingPropertyToBeOfType ("result.parsedUrl", "Url")
+        .expectingPropertyToBe ("path1", "/")
+        .expectingPropertyToBe ("pathname1", "/")
+        .expectingPropertyToBe ("path2", "/a/b/?c=d")
+        .expectingPropertyToBe ("pathname2", "/a/b")
+        .expectingPropertyToBe ("query2", { c: "d" })
         .commit ()
 ;
 
@@ -94,5 +159,9 @@ test.method (http, "responseFor", true)
 
     .given (204)
         .returnsInstanceOf ("http.responses.NoContent")
+        .commit ()
+
+    .given (999)
+        .returnsInstanceOf ("http.responses.InternalServerError")
         .commit ()
 ;
