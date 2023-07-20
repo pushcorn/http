@@ -6,7 +6,7 @@ test.method ("http.conditions.RequestAcceptEncoding", "check",
         createArgs: ["gzip", "deflate"]
     })
     .should ("return %{result} when (encodings) = (%{createArgs.0}, %{createArgs.1}) and the accept-encoding header is %{args[0].req.headers['accept-encoding']}")
-    .given (nit.do (Context.create ("GET", "/"), (ctx) =>
+    .given (nit.do (Context.new ("GET", "/"), (ctx) =>
     {
         ctx.req.headers["accept-encoding"] = "gzip";
     }))
@@ -21,7 +21,7 @@ test.method ("http.conditions.RequestAcceptEncoding", "check",
         createArgs: ["gzip", "br"]
     })
     .should ("return %{result} when (encodings) = (%{createArgs.0}, %{createArgs.1}) and the accept-encoding header is %{args[0].req.headers['accept-encoding']}")
-    .given (nit.do (Context.create ("GET", "/"), (ctx) =>
+    .given (nit.do (Context.new ("GET", "/"), (ctx) =>
     {
         ctx.req.headers["accept-encoding"] = "deflate";
     }))

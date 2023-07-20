@@ -7,77 +7,60 @@ const Response = nit.require ("http.Response")
 ;
 
 
-test.object (Response.testClass, true)
-    .should ("override the class defaults with the specified constructor args")
-        .given ({ "@name": "InvalidInput" })
-        .expectingMethodToReturnValue ("result.toPojo", { "@name": "InvalidInput", "@message": "Not Found", "@status": 404 })
-        .commit ()
-
-    .given ({ "@status": 401 })
-        .expectingMethodToReturnValue ("result.toPojo", { "@name": "Response", "@message": "Not Found", "@status": 401 })
-        .commit ()
-
-    .given ({ "@message": "Invalid Input" })
-        .expectingMethodToReturnValue ("result.toPojo", { "@name": "Response", "@message": "Invalid Input", "@status": 404 })
-        .commit ()
-;
-
-
 test.method (Response.testClass, "info", true)
     .should ("update the status info")
         .given (200, "OK")
         .returnsInstanceOf ("function")
-        .expectingPropertyToBe ("result.STATUS", 200)
-        .expectingPropertyToBe ("result.MESSAGE", "OK")
+        .expectingPropertyToBe ("result.status", 200)
+        .expectingPropertyToBe ("result.message", "OK")
         .commit ()
 
     .given (201)
         .returnsInstanceOf ("function")
-        .expectingPropertyToBe ("result.STATUS", 201)
-        .expectingPropertyToBe ("result.MESSAGE", "Not Found")
+        .expectingPropertyToBe ("result.status", 201)
+        .expectingPropertyToBe ("result.message", "Not Found")
         .commit ()
 
     .given (201, "")
         .returnsInstanceOf ("function")
-        .expectingPropertyToBe ("result.STATUS", 201)
-        .expectingPropertyToBe ("result.MESSAGE", "")
+        .expectingPropertyToBe ("result.status", 201)
+        .expectingPropertyToBe ("result.message", "")
         .commit ()
 ;
 
 
 test.method (Response.testClass, "toPojo")
     .should ("convert the response to a pojo")
-        .returns (
-        {
-            "@name": "Response",
-            "@status": 404,
-            "@message": "Not Found"
-        })
+        .returns ({})
         .commit ()
 ;
 
 
 test.method (Response.testClass.field ("<id>", "string"), "toPojo", { createArgs: ["1234"] })
     .should ("convert the response to a pojo")
-        .returns (
-        {
-            "@name": "Response",
-            "@status": 404,
-            "@message": "Not Found",
-            "id": "1234"
-        })
+        .returns ({ id: "1234" })
         .commit ()
 ;
 
 
+test.method (Response.testClass.field ("<id>", "string"), "toBody", { createArgs: ["1234"] })
+    .should ("return the response body")
+        .given (http.Context.new ("GET", "/"))
+        .returns (`{"id":"1234"}`)
+        .commit ()
+;
+
+
+test.method (Response.testClass.field ("<id>", "string"), "toBody", { createArgs: ["1234"] })
+    .should ("return the value of a given property")
+        .given (http.Context.new ("GET", "/"), "id")
+        .returns (`"1234"`)
+        .commit ()
+;
+
 test.method (Response.testClass, "toBody")
     .should ("serialize the response into JSON")
-        .given (http.Context.create ("GET", "/"))
-        .returns (JSON.stringify (
-        {
-            "@name": "Response",
-            "@status": 404,
-            "@message": "Not Found"
-        }))
+        .given (http.Context.new ("GET", "/"))
+        .returns ("")
         .commit ()
 ;

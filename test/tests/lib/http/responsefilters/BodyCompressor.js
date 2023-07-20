@@ -4,7 +4,7 @@ const Context = nit.require ("http.Context");
 
 test.method ("http.responsefilters.BodyCompressor", "applicableTo")
     .should ("return %{result} if the client accepts %{args[0].req.headers['accept-encoding']} and the response content type is %{args[0].responseHeaders['content-type']}")
-        .given (nit.do (Context.create (), ctx =>
+        .given (nit.do (Context.new (), ctx =>
         {
             ctx.req.headers =
             {
@@ -16,7 +16,7 @@ test.method ("http.responsefilters.BodyCompressor", "applicableTo")
         .returns (true)
         .commit ()
 
-    .given (nit.do (Context.create (), ctx =>
+    .given (nit.do (Context.new (), ctx =>
         {
             ctx.req.headers =
             {
@@ -32,12 +32,12 @@ test.method ("http.responsefilters.BodyCompressor", "applicableTo")
 
 test.method ("http.responsefilters.BodyCompressor", "apply")
     .should ("skip if the response encoder is not set")
-        .given (Context.create ())
+        .given (Context.new ())
         .returns ()
         .commit ()
 
     .should ("skip if the response cannot be compressed")
-        .given (nit.do (Context.create (), ctx =>
+        .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseEncoding = "gzip";
             ctx.responseBody = { a: 1 };
@@ -46,7 +46,7 @@ test.method ("http.responsefilters.BodyCompressor", "apply")
         .commit ()
 
     .should ("not compress the response string if the Length is smaller than the threshold")
-        .given (nit.do (Context.create (), ctx =>
+        .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseEncoding = "gzip";
             ctx.responseBody = "content";
@@ -55,7 +55,7 @@ test.method ("http.responsefilters.BodyCompressor", "apply")
         .commit ()
 
     .should ("be able to compress the response string")
-        .given (nit.do (Context.create (), ctx =>
+        .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseEncoding = "gzip";
             ctx.responseBody = "content";
@@ -69,7 +69,7 @@ test.method ("http.responsefilters.BodyCompressor", "apply")
         .commit ()
 
     .should ("be able to compress the response buffer")
-        .given (nit.do (Context.create (), ctx =>
+        .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseEncoding = "deflate";
             ctx.responseBody = Buffer.from ("content");
@@ -83,7 +83,7 @@ test.method ("http.responsefilters.BodyCompressor", "apply")
         .commit ()
 
     .should ("use the existing ETag if available")
-        .given (nit.do (Context.create (), ctx =>
+        .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseEncoding = "deflate";
             ctx.responseBody = Readable.from (Buffer.from ("content"));
@@ -98,7 +98,7 @@ test.method ("http.responsefilters.BodyCompressor", "apply")
         .commit ()
 
     .should ("use the pre-compressed gzip file if available")
-        .given (nit.do (Context.create (), ctx =>
+        .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseEncoding = "gzip";
             ctx.response = nit.new ("http.responses.FileReturned", "resources/html/page-one.html");
@@ -108,7 +108,7 @@ test.method ("http.responsefilters.BodyCompressor", "apply")
         .commit ()
 
     .should ("be able to compress the body stream")
-        .given (nit.do (Context.create (), ctx =>
+        .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseEncoding = "gzip";
             ctx.response = nit.new ("http.responses.FileReturned", "resources/html/page-two.html");
@@ -122,7 +122,7 @@ test.method ("http.responsefilters.BodyCompressor", "apply")
         .commit ()
 
     .should ("not compress the body stream if the file size is smaller than the threshold")
-        .given (nit.do (Context.create (), ctx =>
+        .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseEncoding = "gzip";
             ctx.response = nit.new ("http.responses.FileReturned", "resources/html/page-two.html");
@@ -130,7 +130,7 @@ test.method ("http.responsefilters.BodyCompressor", "apply")
         .expectingPropertyToBe ("args.0.responseHeaders.ETag")
         .commit ()
 
-    .given (nit.do (Context.create (), ctx =>
+    .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseEncoding = "gzip";
             ctx.responseBody = Readable.from (Buffer.from ("content"));

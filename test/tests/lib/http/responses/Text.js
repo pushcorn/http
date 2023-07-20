@@ -6,7 +6,7 @@ test.method ("http.responses.Text", "toBody",
         createArgs: "this is the text content"
     })
     .should ("return the text content")
-    .given (Context.create ())
+    .given (Context.new ())
     .returns ("this is the text content")
     .expectingPropertyToBe ("args.0.responseHeaders.Content-Type", "text/plain")
     .commit ()

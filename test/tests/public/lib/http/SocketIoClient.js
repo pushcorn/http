@@ -43,6 +43,6 @@ test.object ("http.SocketIoClient")
     .expectingPropertyToBe ("reconnectCounts", [0, 1, 2, 2])
     .expectingPropertyToBe ("disconnectCounts", [0, 0, 0, 1])
     .expectingPropertyToBe ("result.disconnected", true)
-    .expectingMethodToReturnValue ("result.socket.listeners.connect.toString", /CONNECT/)
+    .expectingMethodToReturnValue ("result.socket.listeners.connect.toString", null, /CONNECT/)
     .commit ()
 ;

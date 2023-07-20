@@ -6,11 +6,14 @@ test.command ("http.commands.Server")
         port: 0,
         stopTimeout: 0
     })
-    .after (async function ()
+    .after (async (s) =>
     {
-        this.port = this.object.server.realPort;
+        await nit.sleep (20);
 
-        await this.object.server.stop ();
+        s.port = s.result.realPort;
+
+        await s.result.stop ();
+        await nit.sleep (20);
     })
     .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /server started/)
     .expectingPropertyToBe ("port", /\d+/)

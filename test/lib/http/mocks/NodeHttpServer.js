@@ -16,16 +16,9 @@ module.exports = function (nit)
         {
             return nit.array (this.listenerMap[event]);
         })
-        .method ("removeAllListeners", function (event)
+        .method ("removeAllListeners", function ()
         {
-            if (event)
-            {
-                delete this.listenerMap[event];
-            }
-            else
-            {
-                this.listenerMap = {};
-            }
+            this.listenerMap = {};
         })
         .method ("listen", function (port, address, cb)
         {

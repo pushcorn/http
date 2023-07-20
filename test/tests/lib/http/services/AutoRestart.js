@@ -8,7 +8,7 @@ test.method ("http.services.AutoRestart", "applicableTo")
 
 test.method ("http.services.AutoRestart", "start")
     .should ("start the file watcher and exit the server on file change")
-    .app ()
+    .application ()
     .up (async function ()
     {
         this.createArgs =

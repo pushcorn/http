@@ -1,5 +1,5 @@
-const MockIncomingMessage = nit.require ("http.mocks.IncomingMessage");
 const MockServerResponse = nit.require ("http.mocks.ServerResponse");
+const MockIncomingMessage = nit.require ("http.mocks.IncomingMessage");
 const http = nit.require ("http");
 
 
@@ -16,10 +16,10 @@ test.object ("http.Context")
         .expectingPropertyToBe ("result.method", "GET")
         .expectingPropertyToBe ("result.path", "/users")
         .expectingPropertyToBe ("result.url", "/users?a=b")
-        .expectingMethodToReturnValueOfType ("result.responseHeader", "http.Context", "time", 1000)
-        .expectingMethodToReturnValue ("result.responseHeader", 1000, "time")
-        .expectingMethodToReturnValue ("result.responseHeader", undefined, "x-time")
-        .expectingMethodToReturnValueOfType ("result.writeHeaders", "http.Context")
+        .expectingMethodToReturnValueOfType ("result.responseHeader", ["time", 1000], "http.Context")
+        .expectingMethodToReturnValue ("result.responseHeader", "time", 1000)
+        .expectingMethodToReturnValue ("result.responseHeader", "x-time")
+        .expectingMethodToReturnValueOfType ("result.writeHeaders", null, "http.Context")
         .expectingPropertyToBe ("result.res.headers", { time: 1000 })
         .commit ()
 
@@ -59,7 +59,7 @@ test.object ("http.Context")
 ;
 
 
-test.method (createTestContext (), "create", true)
+test.method (createTestContext (), "new", true)
     .should ("create an instance of Context with mock IncomingMessage and ServerResponse")
         .given ("GET", "/users", { headers: { a: "b" } })
         .after (async function ()
@@ -77,6 +77,48 @@ test.method (createTestContext (), "create", true)
         .expectingPropertyToBe ("result.method", "GET")
         .expectingPropertyToBe ("result.path", "/")
         .expectingPropertyToBe ("result.headerParams", {})
+        .commit ()
+;
+
+
+test.method ("http.Context", "buildRequest",
+    {
+        createArgs:
+        [
+            new MockIncomingMessage ("GET", "/users/123?a=b&c=d"),
+            new MockServerResponse
+        ]
+    })
+    .should ("build the request from parameters")
+        .before (async (s) =>
+        {
+            const User = s.User = nit.defineClass ("UserRequest", "http.Request")
+                .path ("<id>", "string")
+                .parameter ("a", "string")
+                .parameter ("c", "string")
+            ;
+
+            s.object.pathParser = nit.new ("http.PathParser", "/users/:id");
+            s.object.requestBody = { a: 9 };
+            s.args = User;
+
+            await s.object.readRequest ();
+        })
+        .returnsInstanceOf ("UserRequest")
+        .expectingPropertyToBe ("result.id", "123")
+        .expectingPropertyToBe ("result.a", "9")
+        .expectingPropertyToBe ("result.c", "d")
+        .commit ()
+
+    .should ("throw if the param validation failed")
+        .before (async (s) =>
+        {
+            s.object.pathParser = nit.new ("http.PathParser", "/users/:id");
+            s.object.requestBody = { a: 9 };
+            s.args = s.User;
+        })
+        .throws ("error.model_validation_failed")
+        .expectingPropertyToBe ("error.context.validationContext.violations.0.field", "id")
         .commit ()
 ;
 
@@ -167,6 +209,7 @@ test.method ("http.Context", "readRequest",
         .expectingPropertyToBe ("object.formParams", { a: 9 })
         .expectingPropertyToBeOfType ("object.request", "UserRequest")
         .expectingPropertyToBe ("object.request.id", "123")
+        .expectingMethodToReturnValue ("object.readRequest", null, s => s.object.request)
         .commit ()
 ;
 
@@ -182,7 +225,7 @@ test.method ("http.Context", "vary",
     .should ("set the vary header")
         .given ("User-Agent", "X-Status")
         .returnsInstanceOf ("http.Context")
-        .expectingMethodToReturnValue ("object.responseHeader", "User-Agent, X-Status", "vary")
+        .expectingMethodToReturnValue ("object.responseHeader", "vary", "User-Agent, X-Status")
         .commit ()
 
     .given ("HeaderA")
@@ -190,7 +233,7 @@ test.method ("http.Context", "vary",
         {
             this.object.vary ("HeaderB");
         })
-        .expectingMethodToReturnValue ("object.responseHeader", "HeaderA, HeaderB", "vary")
+        .expectingMethodToReturnValue ("object.responseHeader", "vary", "HeaderA, HeaderB")
         .commit ()
 ;
 
@@ -349,9 +392,9 @@ test.method ("http.Context", "writeResponse",
     })
 
     .should ("skip if res.writableEnded is true")
-        .before (function ()
+        .before (s =>
         {
-            nit.dpv (this.createArgs[1], "writableEnded", true, true);
+            s.createArgs[1].writableEnded = true;
         })
         .mock ("object", "writeHeaders", function () {})
         .returnsInstanceOf ("http.Context")
@@ -359,10 +402,10 @@ test.method ("http.Context", "writeResponse",
         .commit ()
 
     .should ("skip if the response is Noop")
-        .before (function ()
+        .before (s =>
         {
-            nit.dpv (this.createArgs[1], "writableEnded", false, true);
-            this.object.response = nit.new ("http.responses.Noop");
+            s.createArgs[1].writableEnded = false;
+            s.object.response = nit.new ("http.responses.Noop");
         })
         .mock ("object", "writeHeaders", function () {})
         .returnsInstanceOf ("http.Context")
@@ -370,10 +413,11 @@ test.method ("http.Context", "writeResponse",
         .commit ()
 
     .should ("throw if the response was not set")
-        .before (function ()
+        .before (s =>
         {
-            nit.dpv (this.createArgs[1], "writableEnded", false, true);
-            this.object.response = null;
+            s.createArgs[1].writableEnded = false;
+
+            s.object.response = null;
         })
         .throws ("error.response_not_set")
         .commit ()
@@ -452,9 +496,70 @@ test.method (createTestContext (), "writeResponse",
         .expectingPropertyToBe ("result.appliedResponseFilters", ["FilterOne", "FilterTwo"])
         .expectingPropertyToBe ("result.res.headers",
         {
-            "Content-Length": 87,
+            "Content-Length": 2,
             "Content-Type": "application/json",
-            "x-server": "nit"
+            "x-server": "nit",
+            "X-Response-Name": "RequestSucceeded"
         })
+        .commit ()
+;
+
+
+test.method (createTestContext (), "redirect",
+    {
+        createArgs:
+        [
+            new MockIncomingMessage ("GET", "http://localhost/users?a=b"),
+            new MockServerResponse
+        ]
+    })
+    .should ("redirect the client")
+        .given (308, "http://a.b.com")
+        .expectingPropertyToBe ("object.status", 308)
+        .expectingPropertyToBe ("object.responseHeaders.Location", "http://a.b.com")
+        .commit ()
+
+    .should ("accept partial changes to the URL")
+        .given ({ pathname: "/projects" })
+        .expectingPropertyToBe ("object.status", 302)
+        .expectingPropertyToBe ("object.responseHeaders.Location", "http://localhost/projects?a=b")
+        .commit ()
+;
+
+
+test.method (createTestContext (), "enter",
+    {
+        createArgs:
+        [
+            new MockIncomingMessage ("GET", "http://localhost/users?a=b"),
+            new MockServerResponse
+        ]
+    })
+    .should ("set the new path and store the old one")
+        .given ("/api/users")
+        .expectingPropertyToBe ("object.path", "/api/users")
+        .expectingPropertyToBe ("object.pathOverrides", ["/api/users"])
+        .commit ()
+
+    .should ("use '/' if not path were given")
+        .given ()
+        .expectingPropertyToBe ("object.path", "/")
+        .expectingPropertyToBe ("object.pathOverrides", ["/"])
+        .commit ()
+;
+
+
+test.method (createTestContext (), "leave",
+    {
+        createArgs:
+        [
+            new MockIncomingMessage ("GET", "http://localhost/users?a=b"),
+            new MockServerResponse
+        ]
+    })
+    .should ("remove the last path override")
+        .before (s => s.object.enter ("/api/users"))
+        .expectingPropertyToBe ("object.path", "/users")
+        .expectingPropertyToBe ("object.pathOverrides", [])
         .commit ()
 ;

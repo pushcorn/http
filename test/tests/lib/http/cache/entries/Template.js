@@ -13,7 +13,7 @@ test.method ("http.cache.entries.Template", "buildValue",
     })
     .given (new Template.Context (
     {
-        httpContext: httpContext.create ("GET", "/"),
+        httpContext: httpContext.new ("GET", "/"),
         cache: nit.new ("nit.Cache", "http.cache.entries.Template"),
         transforms:
         {

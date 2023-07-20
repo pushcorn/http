@@ -7,3 +7,27 @@ test.object (nit.require ("http.SocketIo"))
     .expecting ("the property ClientSocket is socket.io-client.io", true, (s) => s.class.ClientSocket == require ("socket.io-client").Socket)
     .commit ()
 ;
+
+
+test.method ("http.SocketIo.Client", "fetchText")
+    .should ("return the response body as text")
+    .mock ("object", "fetch", () => ({ body: "A string." }))
+    .after (s => s.object.close ())
+    .returns ("A string.")
+    .commit ()
+;
+
+
+test.method ("http.SocketIo.Client", "fetchJson")
+    .should ("return the response body as an object")
+        .mock ("object", "fetch", () => ({ body: JSON.stringify ({ a: 1 })}))
+        .returns ({ a: 1 })
+        .after (s => s.object.close ())
+        .commit ()
+
+    .should ("return undefined if the JSON string is empty")
+        .mock ("object", "fetch", () => ({ body: "" }))
+        .returns ()
+        .after (s => s.object.close ())
+        .commit ()
+;

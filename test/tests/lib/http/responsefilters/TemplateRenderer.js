@@ -3,14 +3,14 @@ const Context = nit.require ("http.Context");
 
 test.method ("http.responsefilters.TemplateRenderer", "applicableTo", { createArgs: "text/html" })
     .should ("return %{result} if (contentType, ctx.responseHeaders.content-type) = (%{createArgs[0]}, %{args[0].responseHeaders['Content-Type']})")
-        .given (nit.do (Context.create (), ctx =>
+        .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseHeader ("Content-Type", "text/html");
         }))
         .returns (true)
         .commit ()
 
-    .given (nit.do (Context.create (), ctx =>
+    .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseHeader ("Content-Type", "text/css");
         }))
@@ -21,7 +21,7 @@ test.method ("http.responsefilters.TemplateRenderer", "applicableTo", { createAr
 
 test.method ("http.responsefilters.TemplateRenderer", "apply", { createArgs: "text/html" })
     .should ("render the response content")
-        .given (nit.do (Context.create (), ctx =>
+        .given (nit.do (Context.new (), ctx =>
         {
             ctx.response = nit.new ("http.responses.FileReturned", "resources/html/page-two.html");
         }))
@@ -32,7 +32,7 @@ test.method ("http.responsefilters.TemplateRenderer", "apply", { createArgs: "te
         })
         .commit ()
 
-    .given (nit.do (Context.create (), ctx =>
+    .given (nit.do (Context.new (), ctx =>
         {
             ctx.response = nit.new ("http.responses.FileReturned", "resources/html/page-one.html");
         }))
@@ -44,14 +44,14 @@ test.method ("http.responsefilters.TemplateRenderer", "apply", { createArgs: "te
         })
         .commit ()
 
-    .given (nit.do (Context.create (), ctx =>
+    .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseBody = "1 + 1 = {% 1 + 1 %}";
         }))
         .expectingPropertyToBe ("args.0.responseBody", "1 + 1 = 2")
         .commit ()
 
-    .given (nit.do (Context.create (), ctx =>
+    .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseBody = "1 + 1 = {% 1 + 1 %}";
         }))

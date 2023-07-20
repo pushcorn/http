@@ -3,11 +3,11 @@ const Context = nit.require ("http.Context");
 
 test.method ("http.responsefilters.CssCompiler", "applicableTo")
     .should ("return %{result} if (ctx.responseHeaders.Content-Type, class.Compiler) = (%{args[0].responseHeaders['Content-Type']|format}, %{class.Compiler})")
-        .given (Context.create ())
+        .given (Context.new ())
         .returns (false)
         .commit ()
 
-    .given (nit.do (Context.create (), ctx =>
+    .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseHeader ("Content-Type", "text/css");
         }))
@@ -15,7 +15,7 @@ test.method ("http.responsefilters.CssCompiler", "applicableTo")
         .commit ()
 
     .should ("return %{result} if (ctx.responseHeaders.Content-Type, class.Compiler) = (%{args[0].responseHeaders['Content-Type']|format}, <undefined>)")
-        .given (nit.do (Context.create (), ctx =>
+        .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseHeader ("Content-Type", "text/css");
         }))
@@ -35,7 +35,7 @@ test.method ("http.responsefilters.CssCompiler", "applicableTo")
 
 test.method ("http.responsefilters.CssCompiler", "apply")
     .should ("compile the CSS content")
-        .given (nit.do (Context.create (), ctx =>
+        .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseBody = Buffer.from ("a { color: red }");
         }))

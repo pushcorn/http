@@ -9,22 +9,6 @@ function newServiceClass ()
 }
 
 
-test.object (Service.ServicePlugin)
-    .should ("define service lifecycle methods")
-    .expectingPropertyToBeOfType ("class.prototype.preInit", "function")
-    .expectingPropertyToBeOfType ("class.prototype.postInit", "function")
-    .expectingPropertyToBeOfType ("class.prototype.preStart", "function")
-    .expectingPropertyToBeOfType ("class.prototype.postStart", "function")
-    .expectingPropertyToBeOfType ("class.prototype.preStop", "function")
-    .expectingPropertyToBeOfType ("class.prototype.postStop", "function")
-    .expectingPropertyToBeOfType ("class.prototype.preUpgrade", "function")
-    .expectingPropertyToBeOfType ("class.prototype.postUpgrade", "function")
-    .expectingPropertyToBeOfType ("class.prototype.preDispatch", "function")
-    .expectingPropertyToBeOfType ("class.prototype.postDispatch", "function")
-    .commit ()
-;
-
-
 test.object (newServiceClass (), true)
     .should ("provide a default context class")
     .expectingPropertyToBeOfType ("result.contextClass.prototype", http.Context)
@@ -32,7 +16,7 @@ test.object (newServiceClass (), true)
 ;
 
 
-test.method (newServiceClass (), "init", true)
+test.method (newServiceClass (), "onInit", true)
     .should ("register the init handler")
     .given (nit.createFunction ("noop"))
     .returnsInstanceOf ("function")
@@ -41,7 +25,7 @@ test.method (newServiceClass (), "init", true)
 ;
 
 
-test.method (newServiceClass (), "start", true)
+test.method (newServiceClass (), "onStart", true)
     .should ("register the start handler")
     .given (nit.createFunction ("noop"))
     .returnsInstanceOf ("function")
@@ -50,7 +34,7 @@ test.method (newServiceClass (), "start", true)
 ;
 
 
-test.method (newServiceClass (), "stop", true)
+test.method (newServiceClass (), "onStop", true)
     .should ("register the stop handler")
     .given (nit.createFunction ("noop"))
     .returnsInstanceOf ("function")
@@ -59,7 +43,7 @@ test.method (newServiceClass (), "stop", true)
 ;
 
 
-test.method (newServiceClass (), "upgrade", true)
+test.method (newServiceClass (), "onUpgrade", true)
     .should ("register the upgrade handler")
     .given (nit.createFunction ("noop"))
     .returnsInstanceOf ("function")
@@ -68,7 +52,7 @@ test.method (newServiceClass (), "upgrade", true)
 ;
 
 
-test.method (newServiceClass (), "dispatch", true)
+test.method (newServiceClass (), "onDispatch", true)
     .should ("register the dispatch handler")
     .given (nit.createFunction ("noop"))
     .returnsInstanceOf ("function")
@@ -77,35 +61,53 @@ test.method (newServiceClass (), "dispatch", true)
 ;
 
 
-test.method (newServiceClass (), "http.Service.dispatch", true)
-    .should ("find a suitable middleware to run")
-    .given (Context.create ("GET", "/two"))
-    .before (function ()
-    {
-        let service = new this.class;
+test.method (newServiceClass (), "dispatch")
+    .should ("find a suitable API to run")
+        .given (Context.new ("GET", "/two"))
+        .up (s =>
+        {
+            const Api1 = http.defineApi ("Api1", true)
+                .condition ("http:request-path", "/one")
+                .onRun (() =>
+                {
+                    s.handledBy = "Api1";
+                })
+            ;
 
-        const Middleware1 = http.defineMiddleware ("Middleware1", true)
-            .condition ("http:request-path", "/one")
-            .run (() =>
+            const Api2 = http.defineApi ("Api2", true)
+                .condition ("http:request-path", "/two")
+                .onRun (() =>
+                {
+                    s.handledBy = "Api2";
+                })
+            ;
+
+            s.createArgs = { apis: [new Api1, new Api2] };
+        })
+        .expectingPropertyToBe ("handledBy", "Api2")
+        .commit ()
+
+    .should ("invoke the hook if defined")
+        .given (Context.new ("GET", "/two"))
+        .up (s =>
+        {
+            s.class.onDispatch (function ()
             {
-                this.handledBy = "Middleware1";
-            })
-        ;
+                s.handledBy = "hook";
+            });
 
-        const Middleware2 = http.defineMiddleware ("Middleware2", true)
-            .condition ("http:request-path", "/two")
-            .run (() =>
-            {
-                this.handledBy = "Middleware2";
-            })
-        ;
+            const Api1 = http.defineApi ("Api1", true)
+                .condition ("http:request-path", "/one")
+                .onRun (() =>
+                {
+                    s.handledBy = "Api1";
+                })
+            ;
 
-        service.middlewares = [new Middleware1, new Middleware2];
-
-        this.class[Service.kDispatch] = this.class[Service.kDispatch].bind (service);
-    })
-    .expectingPropertyToBe ("handledBy", "Middleware2")
-    .commit ()
+            s.createArgs = { apis: [new Api1] };
+        })
+        .expectingPropertyToBe ("handledBy", "hook")
+        .commit ()
 ;
 
 
@@ -113,14 +115,14 @@ test.method (newServiceClass (), "init")
     .should ("init the service")
     .before (function ()
     {
-        const Plugin = Service.defineServicePlugin ("Plugin", true)
-            .preInit (() => this.preInit = true)
-            .postInit (() => this.postInit = true)
+        const Plugin = http.defineServicePlugin ("Plugin", true)
+            .onPreInit (() => this.preInit = true)
+            .onPostInit (() => this.postInit = true)
         ;
 
         this.class
             .serviceplugin (new Plugin)
-            .init (() => this.initCalled = true)
+            .onInit (() => this.initCalled = true)
         ;
     })
     .given (new http.Server ())
@@ -136,14 +138,14 @@ test.method (newServiceClass (), "start")
     .should ("start the service")
     .before (function ()
     {
-        const Plugin = Service.defineServicePlugin ("Plugin", true)
-            .preStart (() => this.preStart = true)
-            .postStart (() => this.postStart = true)
+        const Plugin = http.defineServicePlugin ("Plugin", true)
+            .onPreStart (() => this.preStart = true)
+            .onPostStart (() => this.postStart = true)
         ;
 
         this.class
             .serviceplugin (new Plugin)
-            .start (() => this.startCalled = true)
+            .onStart (() => this.startCalled = true)
         ;
     })
     .returnsInstanceOf (Service)
@@ -158,14 +160,14 @@ test.method (newServiceClass (), "stop")
     .should ("stop the service")
     .before (function ()
     {
-        const Plugin = Service.defineServicePlugin ("Plugin", true)
-            .preStop (() => this.preStop = true)
-            .postStop (() => this.postStop = true)
+        const Plugin = http.defineServicePlugin ("Plugin", true)
+            .onPreStop (() => this.preStop = true)
+            .onPostStop (() => this.postStop = true)
         ;
 
         this.class
             .serviceplugin (new Plugin)
-            .stop (() => this.stopCalled = true)
+            .onStop (() => this.stopCalled = true)
         ;
     })
     .returnsInstanceOf (Service)
@@ -180,14 +182,14 @@ test.method (newServiceClass (), "upgrade")
     .should ("upgrade the service")
     .before (function ()
     {
-        const Plugin = Service.defineServicePlugin ("Plugin", true)
-            .preUpgrade (() => this.preUpgrade = true)
-            .postUpgrade (() => this.postUpgrade = true)
+        const Plugin = http.defineServicePlugin ("Plugin", true)
+            .onPreUpgrade (() => this.preUpgrade = true)
+            .onPostUpgrade (() => this.postUpgrade = true)
         ;
 
         this.class
             .serviceplugin (new Plugin)
-            .upgrade (() => this.upgradeCalled = true)
+            .onUpgrade (() => this.upgradeCalled = true)
         ;
     })
     .returnsInstanceOf (Service)
@@ -202,17 +204,17 @@ test.method (newServiceClass (), "dispatch")
     .should ("dispatch the request")
     .before (function ()
     {
-        const Plugin = Service.defineServicePlugin ("Plugin", true)
-            .preDispatch (() => this.preDispatch = true)
-            .postDispatch (() => this.postDispatch = true)
+        const Plugin = http.defineServicePlugin ("Plugin", true)
+            .onPreDispatch (() => this.preDispatch = true)
+            .onPostDispatch (() => this.postDispatch = true)
         ;
 
         this.class
             .serviceplugin (new Plugin)
-            .dispatch (() => this.dispatchCalled = true)
+            .onDispatch (() => this.dispatchCalled = true)
         ;
     })
-    .given (Context.create ())
+    .given (Context.new ())
     .returnsInstanceOf (Service)
     .expectingPropertyToBe ("preDispatch", true)
     .expectingPropertyToBe ("postDispatch", true)
@@ -225,25 +227,88 @@ test.method (newServiceClass (), "dispatch")
     .should ("skip the dispatch callback if the response is set by a plugin")
     .before (function ()
     {
-        const Plugin = Service.defineServicePlugin ("Plugin", true)
-            .preDispatch ((service, ctx) =>
+        const Plugin = http.defineServicePlugin ("Plugin", true)
+            .onPreDispatch ((service, ctx) =>
             {
                 ctx.send ("http:noop");
 
                 this.preDispatch = true;
             })
-            .postDispatch (() => this.postDispatch = true)
+            .onPostDispatch (() => this.postDispatch = true)
         ;
 
         this.class
             .serviceplugin (new Plugin)
-            .dispatch (() => this.dispatchCalled = true)
+            .onDispatch (() => this.dispatchCalled = true)
         ;
     })
-    .given (Context.create ())
+    .given (Context.new ())
     .returnsInstanceOf (Service)
     .expectingPropertyToBe ("preDispatch", true)
     .expectingPropertyToBe ("postDispatch", true)
     .expectingPropertyToBe ("dispatchCalled", undefined)
     .commit ()
+;
+
+
+test.method ("http.Service.Descriptor", "build")
+    .should ("build the service")
+        .up (function ()
+        {
+            this.createArgs =
+            {
+                hostnames: "app.pushcorn.com",
+                conditions:
+                {
+                    name: "http:request-path",
+                    options: "/api"
+                }
+                ,
+                plugins: "http:file-server",
+                apis:
+                [
+                {
+                    conditions:
+                    {
+                        name: "http:request-content-type",
+                        options: "text/*"
+                    }
+                }
+                ]
+                ,
+                contextClass:
+                {
+                    requestfilters: "http:text-body-parser",
+                    responsefilters: "http:etag-builder"
+                }
+            };
+        })
+        .after (s => s.serviceClass = s.result.constructor)
+        .expectingPropertyToBe ("serviceClass.name", "http.Service")
+        .expectingPropertyToBe ("serviceClass.conditions.length", 2)
+        .expectingPropertyToBeOfType ("serviceClass.conditions.0", "http.conditions.Hostname")
+        .expectingPropertyToBeOfType ("serviceClass.conditions.1", "http.conditions.RequestPath")
+        .expectingPropertyToBeOfType ("serviceClass.serviceplugins.0", "http.serviceplugins.FileServer")
+        .expectingPropertyToBe ("result.apis.length", 1)
+        .expectingPropertyToBeOfType ("result.apis.0.constructor.conditions.0", "http.conditions.RequestContentType")
+        .expectingPropertyToBeOfType ("result.contextClass.prototype", nit.require ("http.Context"))
+        .expectingPropertyToBe ("result.contextClass.requestfilters.length", 1)
+        .expectingPropertyToBe ("result.contextClass.responsefilters.length", 1)
+        .commit ()
+
+    .should ("not add hostname conditions if not specified")
+        .up (function ()
+        {
+            this.createArgs =
+            {
+                conditions:
+                {
+                    name: "http:request-path",
+                    options: "/api"
+                }
+            };
+        })
+        .expectingPropertyToBe ("result.constructor.conditions.length", 1)
+        .expectingPropertyToBeOfType ("result.constructor.conditions.0", "http.conditions.RequestPath")
+        .commit ()
 ;

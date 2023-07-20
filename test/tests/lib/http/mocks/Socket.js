@@ -2,7 +2,7 @@ test.method ("http.mocks.Socket", "on")
     .should ("register the event listener")
     .given ("connect", nit.noop)
     .returnsInstanceOf ("http.mocks.Socket")
-    .expectingPropertyToBe ("object.listeners.connect", nit.noop)
+    .expectingPropertyToBe ("object.listeners.connect", () => nit.noop)
     .commit ()
 ;
 

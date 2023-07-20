@@ -7,34 +7,34 @@ test.method ("http.conditions.Hostname", "check")
         {
             this.createArgs = ["*"];
         })
-        .given (Context.create ({ headers: { host: "pushcorn.com" } }))
+        .given (Context.new ({ headers: { host: "pushcorn.com" } }))
         .returns (true)
         .commit ()
 
     .reset ()
         .init (function ()
         {
-            this.createArgs = ["*.pushcorn.com"];
+            this.createArgs = ["%.pushcorn.com"];
         })
-        .given (Context.create ({ headers: { host: "pushcorn.com" } }))
+        .given (Context.new ({ headers: { host: "pushcorn.com" } }))
         .returns (false)
         .commit ()
 
     .reset ()
         .init (function ()
         {
-            this.createArgs = ["dev.*.pushcorn.com"];
+            this.createArgs = ["dev.%.pushcorn.com"];
         })
-        .given (Context.create ({ headers: { host: "dev.site.pushcorn.com" } }))
+        .given (Context.new ({ headers: { host: "dev.site.pushcorn.com" } }))
         .returns (true)
         .commit ()
 
     .reset ()
         .init (function ()
         {
-            this.createArgs = ["*.pushcorn.com"];
+            this.createArgs = ["%.pushcorn.com"];
         })
-        .given (Context.create ({ headers: { host: "a.pushcorn.com" } }))
+        .given (Context.new ({ headers: { host: "a.pushcorn.com" } }))
         .returns (true)
         .commit ()
 
@@ -43,7 +43,7 @@ test.method ("http.conditions.Hostname", "check")
         {
             this.createArgs = ["a.pushcorn.com"];
         })
-        .given (Context.create ({ headers: { host: "a.pushcorn.com" } }))
+        .given (Context.new ({ headers: { host: "a.pushcorn.com" } }))
         .returns (true)
         .commit ()
 
@@ -52,7 +52,7 @@ test.method ("http.conditions.Hostname", "check")
         {
             this.createArgs = ["a.pushcorn.com"];
         })
-        .given (Context.create ({ headers: { host: "b.pushcorn.com" } }))
+        .given (Context.new ({ headers: { host: "b.pushcorn.com" } }))
         .returns (false)
         .commit ()
 
@@ -61,16 +61,7 @@ test.method ("http.conditions.Hostname", "check")
         {
             this.createArgs = ["~(abc|def).pushcorn.com"];
         })
-        .given (Context.create ({ headers: { host: "a.pushcorn.com" } }))
-        .returns (false)
-        .commit ()
-
-    .reset ()
-        .init (function ()
-        {
-            this.createArgs = ["~(abc|def).pushcorn.com"];
-        })
-        .given (Context.create ({ headers: { host: "abc.pushcorn.com" } }))
+        .given (Context.new ({ headers: { host: "a.pushcorn.com" } }))
         .returns (true)
         .commit ()
 
@@ -79,7 +70,16 @@ test.method ("http.conditions.Hostname", "check")
         {
             this.createArgs = ["~(abc|def).pushcorn.com"];
         })
-        .given (Context.create ({ headers: { host: "def.pushcorn.com" } }))
+        .given (Context.new ({ headers: { host: "abc.pushcorn.com" } }))
+        .returns (false)
+        .commit ()
+
+    .reset ()
+        .init (function ()
+        {
+            this.createArgs = ["(abc|def).pushcorn.com"];
+        })
+        .given (Context.new ({ headers: { host: "def.pushcorn.com" } }))
         .returns (true)
         .commit ()
 ;

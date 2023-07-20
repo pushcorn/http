@@ -8,7 +8,7 @@ module.exports = function (nit, global)
         .property ("socket", "any")
         .property ("disconnected", "boolean", { writer: writer })
 
-        .construct (function ()
+        .onConstruct (function ()
         {
             var self = this;
             var socket = self.socket = global.io ({ path: self.path, forceNew: self.forceNew });

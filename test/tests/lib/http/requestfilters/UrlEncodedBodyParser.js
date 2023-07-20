@@ -12,11 +12,11 @@ test.method ("http.requestfilters.UrlEncodedBodyParser", "apply")
 
 test.method ("http.requestfilters.UrlEncodedBodyParser", "applicableTo")
     .should ("return %{result} if the request content type is %{args[0].req.headers['content-type']}")
-        .given (Context.create ())
+        .given (Context.new ())
         .returns (false)
         .commit ()
 
-    .given (Context.create ({ headers: { "content-type": "application/x-www-form-urlencoded" } }))
+    .given (Context.new ({ headers: { "content-type": "application/x-www-form-urlencoded" } }))
         .returns (true)
         .commit ()
 ;

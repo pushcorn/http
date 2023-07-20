@@ -17,7 +17,7 @@ module.exports = function (nit, Self)
         .property ("disconnectCount", "integer")
         .property ("io", Self.name + ".Manager")
 
-        .construct (function ()
+        .onConstruct (function ()
         {
             this.io = new Self.Manager;
         })

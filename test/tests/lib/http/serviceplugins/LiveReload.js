@@ -33,9 +33,9 @@ function newService (initSocketServer)
 test.method ("http.serviceplugins.LiveReload", "onUsePlugin", true)
     .should ("add the liveReloadEnabled property")
     .given (newServiceClass (false))
-    .after (function (Service)
+    .after (s =>
     {
-        this.service = new Service;
+        s.service = new s.args[0];
     })
     .expectingPropertyToBe ("service.liveReloadEnabled", true)
     .commit ()

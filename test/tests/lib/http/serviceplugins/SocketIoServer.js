@@ -41,7 +41,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "shouldHandleRequest"
 test.method ("http.serviceplugins.SocketIoServer.Manager", "handleRequest")
     .should ("handle the request if possible")
         .init (s => s.createArgs = [newService ()])
-        .given (http.Context.create ("GET", "/socket.io/ab"))
+        .given (http.Context.new ("GET", "/socket.io/ab"))
         .mock ("object.engine", "handleRequest")
         .returns (true)
         .expectingPropertyToBe ("mocks.0.invocations.length", 1)
@@ -49,7 +49,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "handleRequest")
 
     .should ("return false if the request is not for socket.io")
         .init (s => s.createArgs = [newService (), "/sio"])
-        .given (http.Context.create ("GET", "/socket.io/ab"))
+        .given (http.Context.new ("GET", "/socket.io/ab"))
         .mock ("object.io.engine", "handleRequest")
         .returns (false)
         .expectingPropertyToBe ("mocks.0.invocations.length", 0)
@@ -57,7 +57,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "handleRequest")
 
     .should ("respond with the client file if serveClient is true")
         .init (s => s.createArgs = [newService (), { serveClient: true }])
-        .given (http.Context.create ("GET", "/socket.io/socket.io.js"))
+        .given (http.Context.new ("GET", "/socket.io/socket.io.js"))
         .mock ("object.engine", "handleRequest")
         .returns (true)
         .expectingPropertyToBe ("mocks.0.invocations.length", 0)
@@ -128,7 +128,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "dispatch")
         .given (new MockIncomingMessage ("GET", "/items/1"), new MockServerResponse ())
         .mock ("createArgs.0", "dispatch", () => { throw 455; }) // eslint-disable-line no-throw-literal
         .returnsInstanceOf (http.Context)
-        .expectingPropertyToBe ("result.response.@status", 500)
+        .expectingPropertyToBe ("result.response.constructor.status", 500)
         .commit ()
 
     .should ("handle the dispatch error")
@@ -136,7 +136,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "dispatch")
         .given (new MockIncomingMessage ("GET", "/items/1"), new MockServerResponse ())
         .mock ("createArgs.0", "dispatch", () => { throw http.responseFor (403); })
         .returnsInstanceOf (http.Context)
-        .expectingPropertyToBe ("result.response.@status", 403)
+        .expectingPropertyToBe ("result.response.constructor.status", 403)
         .commit ()
 
     .should ("handle the dispatch error")
@@ -145,7 +145,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "dispatch")
         .mock ("createArgs.0", "dispatch", () => { throw new Error ("UNKNOWN"); })
         .mock ("object", "error")
         .returnsInstanceOf (http.Context)
-        .expectingPropertyToBe ("result.response.@status", 500)
+        .expectingPropertyToBe ("result.response.constructor.status", 500)
         .expectingPropertyToBe ("mocks.1.invocations.0.args.0", "error.unexpected_error")
         .commit ()
 
@@ -153,7 +153,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "dispatch")
         .init (s => s.createArgs = [newService ()])
         .before (function ()
         {
-            this.createArgs[0].contextClass.preConstruct (function ()
+            this.createArgs[0].contextClass.onPreConstruct (function ()
             {
                 throw new Error ("Context init error!");
             });
@@ -182,9 +182,11 @@ test.method ("http.serviceplugins.SocketIoServer", "preInit")
     .should ("initialize the service's socketIo property")
     .given (newService ())
     .mock ("args.0.socketIo", "dispatch")
-    .before (function (service)
+    .before (s =>
     {
-        this.class.onUsePlugin (service.constructor);
+        let service = s.args[0];
+
+        s.class.onUsePlugin (service.constructor);
     })
     .expectingPropertyToBeOfType ("args.0.socketIo", "http.serviceplugins.SocketIoServer.Manager")
     .commit ()
@@ -194,10 +196,12 @@ test.method ("http.serviceplugins.SocketIoServer", "preInit")
 test.method ("http.serviceplugins.SocketIoServer", "preUpgrade")
     .should ("upgrade the request")
     .given (newService (), new MockIncomingMessage ("GET", "/socket.io/ab"))
-    .before (function (service)
+    .before (s =>
     {
-        this.class.onUsePlugin (service.constructor);
-        this.object.preInit (service);
+        let service = s.args[0];
+
+        s.class.onUsePlugin (service.constructor);
+        s.object.preInit (service);
     })
     .mock ("args.0.socketIo", "handleUpgrade")
     .expectingPropertyToBe ("mocks.0.invocations.length", 1)
@@ -207,14 +211,18 @@ test.method ("http.serviceplugins.SocketIoServer", "preUpgrade")
 
 test.method ("http.serviceplugins.SocketIoServer", "preDispatch")
     .should ("handle the request")
-    .given (newService (), http.Context.create ())
-    .before (function (service)
+    .given (newService (), http.Context.new ())
+    .before (s =>
     {
-        this.class.onUsePlugin (service.constructor);
-        this.object.preInit (service);
+        let service = s.args[0];
+
+        s.class.onUsePlugin (service.constructor);
+        s.object.preInit (service);
     })
-    .after (async function (service)
+    .after (async (s) =>
     {
+        let service = s.args[0];
+
         let onConnection = service.socketIo.io.listeners ("connection")[0];
         let onMessage;
 
@@ -231,14 +239,14 @@ test.method ("http.serviceplugins.SocketIoServer", "preDispatch")
 
 
         await onMessage ("POST", "/events", { a: 1 });
-        await onMessage ("POST", "/events", { a: 2 }, result => this.callbackResult = result);
+        await onMessage ("POST", "/events", { a: 2 }, response => s.callbackResponse = response);
     })
     .mock ("args.0.socketIo", "handleRequest")
     .mock ("args.0.socketIo", "dispatch")
     .expectingPropertyToBe ("mocks.0.invocations.length", 1)
     .expectingPropertyToBeOfType ("mocks.1.invocations.0.args.0", "http.mocks.IncomingMessage")
     .expectingPropertyToBeOfType ("mocks.1.invocations.0.args.1", "http.mocks.ServerResponse")
-    .expectingPropertyToBe ("callbackResult.@status", 500)
+    .expectingPropertyToBe ("callbackResponse.status", 500)
     .commit ()
 ;
 
@@ -246,10 +254,12 @@ test.method ("http.serviceplugins.SocketIoServer", "preDispatch")
 test.method ("http.serviceplugins.SocketIoServer", "preStop")
     .should ("close the socket")
     .given (newService ())
-    .before (function (service)
+    .before (s =>
     {
-        this.class.onUsePlugin (service.constructor);
-        this.object.preInit (service);
+        let service = s.args[0];
+
+        s.class.onUsePlugin (service.constructor);
+        s.object.preInit (service);
     })
     .mock ("args.0.socketIo", "close")
     .expectingPropertyToBe ("mocks.0.invocations.length", 1)
@@ -268,10 +278,10 @@ test.object ("http.serviceplugins.SocketIoServer")
         .commit ()
 
     .should ("return empty array for clientFiles if clientDistDir is not found")
-        .before (function ()
+        .before (s =>
         {
-            this.class = this.class.defineSubclass ("SocketIoServer$1");
-            nit.noop (this.class.clientDistDir);
+            s.class = s.class.defineSubclass ("SocketIoServer$1");
+            nit.noop (s.class.clientDistDir);
         })
         .mock (nit, "resolveAsset")
         .expectingPropertyToBe ("class.clientFiles", [])

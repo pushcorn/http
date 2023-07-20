@@ -12,11 +12,11 @@ test.method ("http.requestfilters.TextBodyParser", "apply")
 
 test.method ("http.requestfilters.TextBodyParser", "applicableTo")
     .should ("return %{result} if the request content type is %{args[0].req.headers['content-type']}")
-        .given (Context.create ())
+        .given (Context.new ())
         .returns (false)
         .commit ()
 
-    .given (Context.create ({ headers: { "content-type": "text/csv" } }))
+    .given (Context.new ({ headers: { "content-type": "text/csv" } }))
         .returns (true)
         .commit ()
 ;
