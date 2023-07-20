@@ -17,7 +17,14 @@ test.method ("http.ApiClient", "importFromUrl", true)
     })
     .returnsInstanceOf (Function)
     .expecting ("3 APIs were defined", 3, s => nit.keys (s.result.apis).length)
-    .expectingPropertyToBe ("result.apis.CheckIn", { name: "http.apiclients.MyApp.apis.CheckIn" }, true)
+    .expectingPropertyToBe ("result.apis.CheckIn",
+    {
+        "description": "Check-in your location.",
+        "method": "POST",
+        "name": "http.apiclients.MyApp.apis.CheckIn",
+        "path": "/check-ins"
+
+    }, true)
     .expectingMethodToReturnValue ("helloResult.toPojo", null, { message: "Hello John Doe!" })
     .commit ()
 ;
@@ -51,7 +58,14 @@ test.method ("http.ApiClient", "import", true)
     })
     .returnsInstanceOf (Function)
     .expecting ("3 APIs were defined", 3, s => nit.keys (s.result.apis).length)
-    .expectingPropertyToBe ("result.apis.CheckIn", { name: "http.apiclients.MyApp2.apis.CheckIn" }, true)
+    .expectingPropertyToBe ("result.apis.CheckIn",
+    {
+        "description": "Check-in your location.",
+        "method": "POST",
+        "name": "http.apiclients.MyApp2.apis.CheckIn",
+        "path": "/check-ins"
+
+    }, true)
     .expectingMethodToReturnValue ("helloResult.toPojo", null, { message: "Hello Jane Doe!" })
     .commit ()
 ;

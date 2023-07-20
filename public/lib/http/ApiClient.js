@@ -8,7 +8,7 @@ module.exports = function (nit, Self)
         .m ("error.invalid_response_name", "The response name '%{name}' is invalid.")
         .constant ("UNEXPECTED_ERROR_CODE", "error.unexpected_error")
         .categorize ("http.apiclients")
-        .staticProperty ("baseUrl", "string")
+        .meta ("baseUrl")
         .defineNamespace ("apis")
         .defineNamespace ("responses")
         .defineNamespace ("models")
@@ -112,9 +112,9 @@ module.exports = function (nit, Self)
         .defineInnerClass ("Api", "nit.Class", "apis", function (Api)
         {
             Api
-                .staticProperty ("method", "string")
-                .staticProperty ("path", "string")
-                .staticProperty ("description", "string")
+                .meta ("method", "string")
+                .meta ("path", "string")
+                .meta ("description", "string")
 
                 .staticMemo ("pathParser", function ()
                 {
