@@ -41,7 +41,7 @@ test.method ("http.responsefilters.CssCompiler", "apply")
         }))
         .expectingPropertyToBe ("args.0.responseBody", nit.trim.text`
         a {
-            color: red;
+          color: red;
         }`)
         .commit ()
 ;
