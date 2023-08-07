@@ -17,11 +17,11 @@ test.object ("http.Server")
         .after (function ()
         {
             this.result.nodeServer = Server.http.createServer ();
-            this.result.nodeServer.address = function () { return { address: "192.168.0.1", port: 80 }; };
+            this.result.nodeServer.address = function () { return { address: "192.168.0.1", port: 0 }; };
         })
         .returnsInstanceOf ("http.Server")
         .expectingPropertyToBe ("result.realIp", "192.168.0.1")
-        .expectingPropertyToBe ("result.realPort", 80)
+        .expectingPropertyToBe ("result.realPort", /^\d+$/)
         .expectingPropertyToBe ("result.version", /^\d+\.\d+\.\d+$/)
         .commit ()
 

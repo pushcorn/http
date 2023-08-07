@@ -92,7 +92,7 @@ nit.test.Strategy
             .deinit (async (s) =>
             {
                 await nit.sleep (10);
-                await s.server?.stop?. ();
+                await s.server?.stop ();
 
                 s.server = null;
             })
