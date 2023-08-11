@@ -1,7 +1,15 @@
 test.object ("http.services.FileServer")
     .should ("provide a service for static files")
-    .expectingPropertyToBeOfType ("class.serviceplugins.0", "http.serviceplugins.FileServer")
-    .commit ()
+        .expectingPropertyToBeOfType ("class.serviceplugins.0", "http.serviceplugins.FileServer")
+        .expectingPropertyToContain ("class.serviceplugins.0.roots", [nit.path.join (nit.HOME, "public")])
+        .expectingPropertyToBe ("class.serviceplugins.0.indexes.length", 2)
+        .commit ()
+
+    .should ("provided roots and indexes to create the plugin")
+        .given ({ roots: "dist", indexes: "index.html" })
+        .expectingPropertyToContain ("class.serviceplugins.0.roots", [nit.path.join (nit.HOME, "dist")])
+        .expectingPropertyToBe ("class.serviceplugins.0.indexes.length", 1)
+        .commit ()
 ;
 
 

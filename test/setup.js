@@ -37,7 +37,7 @@ nit.test.Strategy
     .method ("createServer", function (descriptor)
     {
         descriptor = descriptor || {};
-        descriptor.options = nit.assign.defined ({ port: 0, stopTimeout: 0 }, descriptor.options);
+        descriptor.options = nit.assign.defined ({ port: 0, sslPort: 0, stopTimeout: 0 }, descriptor.options);
 
         return this.http.Server.Descriptor (descriptor).build ();
     })

@@ -1,6 +1,19 @@
 const Context = nit.require ("http.Context");
 
 
+test.object ("http.serviceplugins.FileServer")
+    .should ("be able to resolve aliased path")
+        .given ({ roots: "@@pushcorn/nit" })
+        .expectingPropertyToBe ("result.roots", [nit.HOME])
+        .commit ()
+
+    .should ("generate the root paths with nit.ASSET_PATHS if the path is relative ")
+        .given ({ roots: "dist" })
+        .expectingPropertyToContain ("result.roots", [nit.path.join (nit.HOME, "dist")])
+        .commit ()
+;
+
+
 test.method ("http.serviceplugins.FileServer", "resolve")
     .should ("return %{result} if the path is %{args.0}")
         .given ()
