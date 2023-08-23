@@ -6,6 +6,6 @@ test.method ("http.responses.Noop", "toBody")
         .given (Context.new ())
         .returns ("")
         .expectingPropertyToBe ("object.constructor.status", 0)
-        .expectingPropertyToBe ("object.constructor.message", "The response will be handled manually.")
+        .expectingPropertyToBe ("object.constructor.message", "OK")
         .commit ()
 ;
