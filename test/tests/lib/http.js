@@ -258,18 +258,13 @@ test.method (http, "fetchText", true)
         })
         .useServer (
         {
+            names: "app.pushcorn.com",
             services: "test:hello",
-            certificates:
-            [
+            certificate:
             {
-                hostnames: "app.pushcorn.com",
-                options:
-                {
-                    cert: CERTS_DIR.join ("pushcorn.com.crt"),
-                    key: CERTS_DIR.join ("pushcorn.com.key")
-                }
+                cert: CERTS_DIR.join ("pushcorn.com.crt"),
+                key: CERTS_DIR.join ("pushcorn.com.key")
             }
-            ]
         })
         .before (s => s.args =
         [
@@ -294,7 +289,7 @@ test.method (http, "fetchData", true)
             http.defineService ("test.services.Hello")
                 .onDispatch (ctx =>
                 {
-                    ctx.send ("http:file-returned", CERTS_DIR.join ("pushcorn.com.crt"));
+                    ctx.send ("http:file", CERTS_DIR.join ("pushcorn.com.crt"));
                 })
             ;
         })
@@ -313,10 +308,9 @@ test.method (http, "fetchJson", true)
             http.defineService ("test.services.Hello")
                 .onDispatch (ctx =>
                 {
-                    ctx.send ("http:request-succeeded",
+                    ctx.sendJson (
                     {
-                        dataOnly: true,
-                        data: { message: "Hello!" }
+                        message: "Hello!"
                     });
                 })
             ;
@@ -332,10 +326,7 @@ test.method (http, "fetchJson", true)
             http.defineService ("test.services.HelloEmpty")
                 .onDispatch (ctx =>
                 {
-                    ctx.send ("http:request-succeeded",
-                    {
-                        dataOnly: true
-                    });
+                    ctx.sendJson ();
                 })
             ;
         })
@@ -353,10 +344,9 @@ test.method (http, "fetchJson", true)
                 {
                     if (ctx.requestBody?.message == "ping")
                     {
-                        ctx.send ("http:request-succeeded",
+                        ctx.sendJson (
                         {
-                            dataOnly: true,
-                            data: { message: "pong" }
+                            message: "pong"
                         });
                     }
                 })
@@ -395,10 +385,10 @@ test.method (http, "fetchJson", true)
                 {
                     if (ctx.requestBody?.message == "ping")
                     {
-                        ctx.send ("http:request-succeeded",
+                        ctx.sendJson (
                         {
-                            dataOnly: true,
-                            data: { message: "pong", name: ctx.queryParams.name }
+                            message: "pong",
+                            name: ctx.queryParams.name
                         });
                     }
                 })
@@ -444,10 +434,10 @@ test.method (http, "fetchJson", true)
                 {
                     if (ctx.requestBody?.message == "ping")
                     {
-                        ctx.send ("http:request-succeeded",
+                        ctx.sendJson (
                         {
-                            dataOnly: true,
-                            data: { message: "pong", name: ctx.queryParams.name }
+                            message: "pong",
+                            name: ctx.queryParams.name
                         });
                     }
                 })
@@ -456,17 +446,12 @@ test.method (http, "fetchJson", true)
         .useServer (
         {
             services: ["test:redir", "test:ping"],
-            certificates:
-            [
+            names: "app.pushcorn.com",
+            certificate:
             {
-                hostnames: "app.pushcorn.com",
-                options:
-                {
-                    cert: CERTS_DIR.join ("pushcorn.com.crt"),
-                    key: CERTS_DIR.join ("pushcorn.com.key")
-                }
+                cert: CERTS_DIR.join ("pushcorn.com.crt"),
+                key: CERTS_DIR.join ("pushcorn.com.key")
             }
-            ]
         })
         .before (s => s.args =
         [
