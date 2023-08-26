@@ -3,12 +3,6 @@ const MockIncomingMessage = nit.require ("http.mocks.IncomingMessage");
 const http = nit.require ("http");
 
 
-function createTestContext ()
-{
-    return nit.defineClass ("http.Context", "http.Context", true);
-}
-
-
 test.object ("http.Context")
     .should ("parse the request URL")
         .given (new MockIncomingMessage ("GET", "/users?a=b"), new MockServerResponse)
@@ -25,9 +19,11 @@ test.object ("http.Context")
 
     .should ("set responseBody to an empty string for bodyless responses")
         .given (new MockIncomingMessage ("GET", "/users?a=b"), new MockServerResponse)
-        .after (function ()
+        .after (async (s) =>
         {
-            this.result.response = http.responseFor (204);
+            s.result.response = http.responseFor (204);
+
+            await s.result.writeResponse ();
         })
         .expectingPropertyToBe ("result.responseBody", "")
         .commit ()
@@ -59,7 +55,7 @@ test.object ("http.Context")
 ;
 
 
-test.method (createTestContext (), "new", true)
+test.method ("http.Context", "new", true)
     .should ("create an instance of Context with mock IncomingMessage and ServerResponse")
         .given ("GET", "/users", { headers: { a: "b" } })
         .after (async function ()
@@ -98,7 +94,7 @@ test.method ("http.Context", "buildRequest",
                 .parameter ("c", "string")
             ;
 
-            s.object.pathParser = nit.new ("http.PathParser", "/users/:id");
+            s.object.pathParams = nit.new ("http.PathParser", "/users/:id").parse (s.object.path);
             s.object.requestBody = { a: 9 };
             s.args = User;
 
@@ -113,8 +109,6 @@ test.method ("http.Context", "buildRequest",
     .should ("throw if the param validation failed")
         .before (async (s) =>
         {
-            s.object.pathParser = nit.new ("http.PathParser", "/users/:id");
-            s.object.requestBody = { a: 9 };
             s.args = s.User;
         })
         .throws ("error.model_validation_failed")
@@ -123,7 +117,7 @@ test.method ("http.Context", "buildRequest",
 ;
 
 
-test.method (createTestContext (), "readRequest",
+test.method ("http.Context", "readRequest",
     {
         createArgs:
         [
@@ -170,11 +164,7 @@ test.method (createTestContext (), "readRequest",
                 })
             ;
 
-            this.class
-                .requestfilter (new InspectThird)
-                .requestfilter (new InspectSecond)
-                .requestfilter (new InspectFirst)
-            ;
+            this.object.requestFilters.push (new InspectThird, new InspectSecond, new InspectFirst);
         })
         .returns ()
         .expectingPropertyToBe ("object.queryParams", { a: "b" })
@@ -200,7 +190,7 @@ test.method ("http.Context", "readRequest",
                 .path ("<id>", "string")
             ;
 
-            this.object.pathParser = nit.new ("http.PathParser", "/users/:id");
+            this.object.pathParams = nit.new ("http.PathParser", "/users/:id").parse (this.object.path);
             this.object.requestBody = { a: 9 };
             this.args.push (User);
         })
@@ -343,6 +333,7 @@ test.method ("http.Context", "send")
 
     .should ("send the response")
         .given ("http:request-failed")
+        .after (async (s) => await s.object.writeResponse ())
         .expectingPropertyToBeOfType ("object.response", "http.responses.RequestFailed")
         .expectingPropertyToBe ("object.sent", true)
         .expecting ("the sent property cannot be changed", true, function ({ object })
@@ -355,9 +346,11 @@ test.method ("http.Context", "send")
 
     .should ("throw if a response has been sent")
         .given ("http:request-failed")
-        .before (function ()
+        .before (async (s) =>
         {
-            this.object.send ("http:request-failed");
+            s.object.send ("http:request-failed");
+
+            await s.object.writeResponse ();
         })
         .throws ("error.response_sent")
         .commit ()
@@ -379,6 +372,124 @@ test.method ("http.Context", "noop",
     .should ("send the noop response")
     .expectingPropertyToBeOfType ("object.response", "http.responses.Noop")
     .commit ()
+;
+
+
+test.method ("http.Context", "sendJson",
+    {
+        createArgs:
+        [
+            new MockIncomingMessage ("GET", "/users?a=b"),
+            new MockServerResponse
+        ]
+    })
+    .should ("send the JSON response")
+    .given ({ a: 1 })
+    .after (async (s) => await s.object.writeResponse ())
+    .expectingPropertyToBeOfType ("object.response", "http.responses.Json")
+    .expectingPropertyToBe ("object.responseHeaders.Content-Length", 7)
+    .commit ()
+;
+
+
+test.method ("http.Context", "sendText",
+    {
+        createArgs:
+        [
+            new MockIncomingMessage ("GET", "/users?a=b"),
+            new MockServerResponse
+        ]
+    })
+    .should ("send the text response")
+    .given ("this is a test")
+    .after (async (s) => await s.object.writeResponse ())
+    .expectingPropertyToBeOfType ("object.response", "http.responses.Text")
+    .expectingPropertyToBe ("object.responseHeaders.Content-Length", 14)
+    .commit ()
+;
+
+
+test.method ("http.Context", "sendData",
+    {
+        createArgs:
+        [
+            new MockIncomingMessage ("GET", "/users?a=b"),
+            new MockServerResponse
+        ]
+    })
+    .should ("send the data response")
+    .given (Buffer.from ("abcd"))
+    .after (async (s) => await s.object.writeResponse ())
+    .expectingPropertyToBeOfType ("object.response", "http.responses.Data")
+    .expectingPropertyToBe ("object.responseHeaders.Content-Length", 4)
+    .commit ()
+;
+
+
+test.method ("http.Context", "sendFile",
+    {
+        createArgs:
+        [
+            new MockIncomingMessage ("GET", "/users?a=b"),
+            new MockServerResponse
+        ]
+    })
+    .should ("send the specified file")
+    .given (nit.path.join (test.TEST_PROJECT_PATH, "../package.json"))
+    .after (async (s) => await s.object.writeResponse ())
+    .expectingPropertyToBeOfType ("object.response", "http.responses.File")
+    .expectingPropertyToBe ("object.responseHeaders.Content-Type", "application/json")
+    .commit ()
+;
+
+
+test.method ("http.Context", "render",
+    {
+        createArgs:
+        [
+            new MockIncomingMessage ("GET", "/"),
+            new MockServerResponse
+        ]
+    })
+    .should ("render the view template with the given data")
+    .before (s => s.object.service = s.createService (
+    {
+        assetResolvers: { roots: "resources/html" }
+    }))
+    .given ("hello.html", { firstname: "John" })
+    .after (async (s) => await s.object.writeResponse ())
+    .expectingPropertyToBeOfType ("object.response", "http.responses.View")
+    .expectingPropertyToBe ("object.responseHeaders.Content-Type", "text/html")
+    .expectingPropertyToBe ("object.responseBody", "Hello John!\n")
+    .commit ()
+;
+
+
+test.method ("http.Context", "loadTemplate",
+    {
+        createArgs:
+        [
+            new MockIncomingMessage ("GET", "/"),
+            new MockServerResponse
+        ]
+    })
+    .should ("load the view template")
+        .before (s => s.object.service = s.createService (
+        {
+            assetResolvers: { roots: "resources/html" },
+            templateLoaders: { extensions: "html" }
+        }))
+        .given ("page-one.html")
+        .returns (nit.trim.text`
+            This is page one.
+            This is page two!
+        ` + "\n\n")
+        .commit ()
+
+    .should ("return undefined if the template cannot be found")
+        .given ("page-01.html")
+        .returns ()
+        .commit ()
 ;
 
 
@@ -423,20 +534,20 @@ test.method ("http.Context", "writeResponse",
         .commit ()
 
     .should ("pipe the response body to res if it's a stream")
-        .before (function ()
+        .before (s =>
         {
             let resolve;
 
-            this.object.response = nit.new ("http.responses.FileReturned", "package.json");
-            this.onResFinish = new Promise (res => resolve = res);
-            this.object.res.on ("finish", function ()
+            s.object.response = nit.new ("http.responses.File", nit.path.join (test.TEST_PROJECT_PATH, "../package.json"));
+            s.onResFinish = new Promise (res => resolve = res);
+            s.object.res.on ("finish", function ()
             {
                 resolve ();
             });
         })
-        .after (async function ()
+        .after (async (s) =>
         {
-            await this.onResFinish;
+            await s.onResFinish;
         })
         .returnsInstanceOf ("http.Context")
         .expectingPropertyToBe ("result.res.data", /@pushcorn\/http/)
@@ -444,19 +555,13 @@ test.method ("http.Context", "writeResponse",
 ;
 
 
-test.method (createTestContext (), "writeResponse",
-    {
-        createArgs:
-        [
-            new MockIncomingMessage ("GET", "/users?a=b"),
-            new MockServerResponse
-        ]
-    })
+test.method ("http.Context", "writeResponse")
     .should ("apply the response filters")
+        .up (s => s.createArgs = [new MockIncomingMessage ("GET", "/"), new MockServerResponse])
         .before (function ()
         {
             this.object.appliedResponseFilters = [];
-            this.object.response = nit.new ("http.responses.RequestSucceeded");
+            this.object.response = nit.new ("http.responses.Json", { json: { v: 1 } });
             this.object.responseHeader ("x-server", "nit");
 
             const FilterTwo = http.defineResponseFilter ("FilterTwo")
@@ -486,26 +591,120 @@ test.method (createTestContext (), "writeResponse",
                 })
             ;
 
-            this.class
-                .responsefilter (new FilterTwo)
-                .responsefilter (new FilterOne)
-                .responsefilter (new FilterThree)
-            ;
+            this.object.responseFilters.push (new FilterTwo, new FilterOne, new FilterThree);
         })
         .returnsInstanceOf ("http.Context")
         .expectingPropertyToBe ("result.appliedResponseFilters", ["FilterOne", "FilterTwo"])
         .expectingPropertyToBe ("result.res.headers",
         {
-            "Content-Length": 2,
+            "Content-Length": 7,
             "Content-Type": "application/json",
-            "x-server": "nit",
-            "X-Response-Name": "RequestSucceeded"
+            "x-server": "nit"
+        })
+        .commit ()
+
+    .should ("rebuild the response body if the response is changed by a response filter")
+        .up (s => s.createArgs = [new MockIncomingMessage ("GET", "/"), new MockServerResponse])
+        .before (function ()
+        {
+            this.object.appliedResponseFilters = [];
+            this.object.response = nit.new ("http.responses.Json", { json: { v: 1 } });
+
+            const FilterTwo = http.defineResponseFilter ("FilterTwo")
+                .orderAfter ("FilterOne")
+                .method ("apply", function (ctx)
+                {
+                    ctx.appliedResponseFilters.push (this.constructor.simpleName);
+                })
+            ;
+
+            const FilterOne = http.defineResponseFilter ("FilterOne")
+                .method ("apply", function (ctx)
+                {
+                    ctx.appliedResponseFilters.push (this.constructor.simpleName);
+                    ctx.sendText ("filter one!");
+                })
+            ;
+
+            const FilterThree = http.defineResponseFilter ("FilterThree")
+                .orderAfter ("FilterTwo")
+                .condition ("http:custom", function ()
+                {
+                    return true;
+                })
+                .method ("apply", function (ctx)
+                {
+                    ctx.appliedResponseFilters.push (this.constructor.simpleName);
+                })
+            ;
+
+            this.object.responseFilters.push (new FilterTwo, new FilterOne, new FilterThree);
+        })
+        .returnsInstanceOf ("http.Context")
+        .expectingPropertyToBe ("result.appliedResponseFilters", ["FilterOne", "FilterTwo", "FilterThree"])
+        .expectingPropertyToBe ("result.res.headers",
+        {
+            "Content-Length": 11,
+            "Content-Type": "text/plain"
+        })
+        .commit ()
+
+    .should ("clear the content-length header if it cannnot be determined")
+        .up (s => s.createArgs = [new MockIncomingMessage ("GET", "/"), new MockServerResponse])
+        .before (function ()
+        {
+            this.object.appliedResponseFilters = [];
+            this.object.response = nit.new ("http.responses.Json", { json: { v: 1 } });
+
+            const StreamResponse = http.defineResponse ("Stream")
+                .method ("toBody", function (ctx)
+                {
+                    return nit.fs.createReadStream (__filename);
+                })
+            ;
+
+            const FilterTwo = http.defineResponseFilter ("FilterTwo")
+                .orderAfter ("FilterOne")
+                .method ("apply", function (ctx)
+                {
+                    ctx.appliedResponseFilters.push (this.constructor.simpleName);
+                })
+            ;
+
+            const FilterOne = http.defineResponseFilter ("FilterOne")
+                .method ("apply", function (ctx)
+                {
+                    ctx.appliedResponseFilters.push (this.constructor.simpleName);
+                    ctx.sendText ("filter one!");
+                })
+            ;
+
+            const FilterThree = http.defineResponseFilter ("FilterThree")
+                .orderAfter ("FilterTwo")
+                .condition ("http:custom", function ()
+                {
+                    return true;
+                })
+                .method ("apply", function (ctx)
+                {
+                    ctx.response = new StreamResponse ();
+                    ctx.appliedResponseFilters.push (this.constructor.simpleName);
+                })
+            ;
+
+            this.object.responseFilters.push (new FilterTwo, new FilterOne, new FilterThree);
+        })
+        .returnsInstanceOf ("http.Context")
+        .expectingPropertyToBe ("result.appliedResponseFilters", ["FilterOne", "FilterTwo", "FilterThree"])
+        .expectingPropertyToBe ("result.res.headers",
+        {
+            "Content-Type": "text/plain"
         })
         .commit ()
 ;
 
 
-test.method (createTestContext (), "redirect",
+test.method ("http.Context", "redirect",
     {
         createArgs:
         [
@@ -527,7 +726,7 @@ test.method (createTestContext (), "redirect",
 ;
 
 
-test.method (createTestContext (), "enter",
+test.method ("http.Context", "enter",
     {
         createArgs:
         [
@@ -549,7 +748,7 @@ test.method (createTestContext (), "enter",
 ;
 
 
-test.method (createTestContext (), "leave",
+test.method ("http.Context", "leave",
     {
         createArgs:
         [
