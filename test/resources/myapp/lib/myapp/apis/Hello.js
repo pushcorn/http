@@ -22,7 +22,7 @@ module.exports = function (nit, http)
                 .parameter ("opt5", "integer")
             ;
         })
-        .response ("myapp.HelloMessageReturned", "http:ValidationFailed")
+        .response ("myapp:HelloMessageReturned", "http:ValidationFailed")
 
         .onRun (ctx =>
         {
