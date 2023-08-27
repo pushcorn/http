@@ -44,7 +44,7 @@ test.method ("http.ApiClient", "import", true)
         let result = response.result;
 
         s.object = await s.http.defineApiClient ("MyApp2")
-            .assignStatic ({ baseUrl: s.baseUrl })
+            .meta ("baseUrl", s.baseUrl)
         ;
 
         result.spec.apis[2].request.parameters[3].constraints[0].type = "test:unique"; // simulate the server-side constraint to be created by the client

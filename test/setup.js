@@ -36,14 +36,14 @@ nit.test.Strategy
     })
     .method ("createServer", function (descriptor)
     {
-        descriptor = descriptor || {};
+        descriptor = descriptor || { names: "*" };
         descriptor.options = nit.assign.defined ({ port: 0, sslPort: 0, stopTimeout: 0 }, descriptor.options);
 
-        return this.http.Server.Descriptor (descriptor).build ();
+        return this.http.Server.Descriptor.build (descriptor);
     })
     .method ("createService", function (descriptor)
     {
-        return this.http.Service.Descriptor (descriptor).build ();
+        return this.http.Service.Descriptor.build (descriptor);
     })
     .method ("useApi", function (descriptor)
     {
@@ -52,10 +52,10 @@ nit.test.Strategy
             {
                 s.server = s.server || s.createServer ();
                 s.service = s.service || s.createService ();
-                s.api = s.Api.Descriptor (descriptor).build ();
+                s.api = s.Api.Descriptor.build (descriptor);
 
-                s.server.services.push (s.service);
-                s.service.apis.push (s.api);
+                s.server.hosts[0].services.push (s.service);
+                s.service.handlers.push (s.api);
             })
         ;
     })
@@ -67,7 +67,7 @@ nit.test.Strategy
                 s.server = s.server || s.createServer ();
                 s.service = s.service || s.createService (descriptor);
 
-                s.server.services.push (s.service);
+                s.server.hosts[0].services.push (s.service);
             })
         ;
     })
@@ -83,7 +83,7 @@ nit.test.Strategy
                 await s.server.start ();
                 await nit.sleep (10);
 
-                s.baseUrl = (s.server.certificates.length ? "https" : "http")
+                s.baseUrl = (s.server.hosts.some (h => h.certificate) ? "https" : "http")
                     + "://127.0.0.1:"
                     + s.server.realPort
                 ;

@@ -8,7 +8,7 @@ module.exports = function (nit, Self)
         .m ("error.invalid_response_name", "The response name '%{name}' is invalid.")
         .constant ("UNEXPECTED_ERROR_CODE", "error.unexpected_error")
         .categorize ("http.apiclients")
-        .meta ("baseUrl")
+        .defineMeta ("baseUrl")
         .defineNamespace ("apis")
         .defineNamespace ("responses")
         .defineNamespace ("models")
@@ -81,9 +81,9 @@ module.exports = function (nit, Self)
         .defineInnerClass ("Response", Self.Model.name, "responses", function (Response)
         {
             Response
-                .staticProperty ("status", "integer")
-                .staticProperty ("message", "string")
-                .staticProperty ("code", "string?")
+                .defineMeta ("status", "integer")
+                .defineMeta ("message", "string")
+                .defineMeta ("code", "string?")
 
                 .staticMethod ("import", function (s)
                 {
@@ -100,7 +100,7 @@ module.exports = function (nit, Self)
         .defineInnerClass ("UnexpectedErrorOccurred", Self.Response.name, function (UnexpectedErrorOccurred)
         {
             UnexpectedErrorOccurred
-                .assignStatic (
+                .meta (
                 {
                     status: 500,
                     message: "Sorry, we are unable to fulfill your request right now. Please try again later.",
@@ -112,9 +112,9 @@ module.exports = function (nit, Self)
         .defineInnerClass ("Api", "nit.Class", "apis", function (Api)
         {
             Api
-                .meta ("method", "string")
-                .meta ("path", "string")
-                .meta ("description", "string")
+                .defineMeta ("method", "string")
+                .defineMeta ("path", "string")
+                .defineMeta ("description", "string")
 
                 .staticMemo ("pathParser", function ()
                 {

@@ -2,7 +2,9 @@ const http = nit.require ("http");
 const Response = nit.require ("http.Response")
     .staticGetter ("testClass", function ()
     {
-        return this.defineSubclass (this.name, true);
+        return this.defineSubclass (this.name, true)
+            .field ("mesg", "string?")
+        ;
     })
 ;
 
@@ -18,13 +20,13 @@ test.method (Response.testClass, "info", true)
     .given (201)
         .returnsInstanceOf ("function")
         .expectingPropertyToBe ("result.status", 201)
-        .expectingPropertyToBe ("result.message", "Not Found")
+        .expectingPropertyToBe ("result.message", "Created")
         .commit ()
 
     .given (201, "")
         .returnsInstanceOf ("function")
         .expectingPropertyToBe ("result.status", 201)
-        .expectingPropertyToBe ("result.message", "")
+        .expectingPropertyToBe ("result.message", "Created")
         .commit ()
 ;
 
@@ -58,8 +60,18 @@ test.method (Response.testClass.field ("<id>", "string"), "toBody", { createArgs
         .commit ()
 ;
 
+
 test.method (Response.testClass, "toBody")
     .should ("serialize the response into JSON")
+        .given (http.Context.new ("GET", "/"))
+        .returns ("{}")
+        .expectingPropertyToBe ("args.0.responseHeaders.Content-Type", "application/json")
+        .commit ()
+;
+
+
+test.method (Response.defineSubclass ("Response", true), "toBody")
+    .should ("serialize the to an empty string if no fields were defined")
         .given (http.Context.new ("GET", "/"))
         .returns ("")
         .commit ()

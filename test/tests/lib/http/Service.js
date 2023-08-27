@@ -9,13 +9,6 @@ function newServiceClass ()
 }
 
 
-test.object (newServiceClass (), true)
-    .should ("provide a default context class")
-    .expectingPropertyToBeOfType ("result.contextClass.prototype", http.Context)
-    .commit ()
-;
-
-
 test.method (newServiceClass (), "onInit", true)
     .should ("register the init handler")
     .given (nit.createFunction ("noop"))
@@ -82,9 +75,38 @@ test.method (newServiceClass (), "dispatch")
                 })
             ;
 
-            s.createArgs = { apis: [new Api1, new Api2] };
+            s.createArgs = { handlers: [new Api1, new Api2] };
         })
         .expectingPropertyToBe ("handledBy", "Api2")
+        .commit ()
+
+    .should ("find a suitable action to run")
+        .given (Context.new ("GET", "/two"))
+        .up (s =>
+        {
+            const Action1 = http.defineAction ("Action1", true)
+                .condition ("http:request-path", "/one")
+                .onRun (() =>
+                {
+                    s.handledBy = "Action1";
+                })
+            ;
+
+            const Action2 = http.defineAction ("Action2", true)
+                .condition ("http:request-path", "/two")
+                .onRun (() =>
+                {
+                    s.handledBy = "Action2";
+                })
+            ;
+
+            s.createArgs = { handlers: [new Action1, new Action2] };
+        })
+        .expectingPropertyToBe ("handledBy", "Action2")
+        .commit ()
+
+    .should ("do nothing if the no api or action can be used to handle the request")
+        .given (Context.new ("GET", "/two"))
         .commit ()
 
     .should ("invoke the hook if defined")
@@ -253,9 +275,11 @@ test.method (newServiceClass (), "dispatch")
 
 test.method ("http.Service.Descriptor", "build")
     .should ("build the service")
-        .up (function ()
+        .up (s =>
         {
-            this.createArgs =
+            http.defineAction ("Test");
+
+            s.createArgs =
             {
                 hostnames: "app.pushcorn.com",
                 conditions:
@@ -264,7 +288,7 @@ test.method ("http.Service.Descriptor", "build")
                     options: "/api"
                 }
                 ,
-                plugins: "http:file-server",
+                actions: "http:test",
                 apis:
                 [
                 {
@@ -276,11 +300,8 @@ test.method ("http.Service.Descriptor", "build")
                 }
                 ]
                 ,
-                contextClass:
-                {
-                    requestfilters: "http:text-body-parser",
-                    responsefilters: "http:etag-builder"
-                }
+                requestFilters: "http:text-body-parser",
+                responseFilters: "http:etag-builder"
             };
         })
         .after (s => s.serviceClass = s.result.constructor)
@@ -288,12 +309,10 @@ test.method ("http.Service.Descriptor", "build")
         .expectingPropertyToBe ("serviceClass.conditions.length", 2)
         .expectingPropertyToBeOfType ("serviceClass.conditions.0", "http.conditions.Hostname")
         .expectingPropertyToBeOfType ("serviceClass.conditions.1", "http.conditions.RequestPath")
-        .expectingPropertyToBeOfType ("serviceClass.serviceplugins.0", "http.serviceplugins.FileServer")
-        .expectingPropertyToBe ("result.apis.length", 1)
-        .expectingPropertyToBeOfType ("result.apis.0.constructor.conditions.0", "http.conditions.RequestContentType")
-        .expectingPropertyToBeOfType ("result.contextClass.prototype", nit.require ("http.Context"))
-        .expectingPropertyToBe ("result.contextClass.requestfilters.length", 1)
-        .expectingPropertyToBe ("result.contextClass.responsefilters.length", 1)
+        .expectingPropertyToBe ("result.handlers.length", 2)
+        .expectingPropertyToBeOfType ("result.handlers.0.constructor.conditions.0", "http.conditions.RequestContentType")
+        .expectingPropertyToBe ("result.requestFilters.length", 1)
+        .expectingPropertyToBe ("result.responseFilters.length", 1)
         .commit ()
 
     .should ("not add hostname conditions if not specified")
