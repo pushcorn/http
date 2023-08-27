@@ -31,3 +31,16 @@ test.method (MimeType, "lookup", true)
         .commit ()
 
 ;
+
+
+test.method (MimeType, "lookupName", true)
+    .should ("return the mime type's name")
+        .given ("text/html")
+        .returns ("text/html")
+        .commit ()
+
+    .reset ()
+        .given (".html")
+        .returns ("text/html")
+        .commit ()
+;

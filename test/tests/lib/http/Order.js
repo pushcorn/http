@@ -42,11 +42,41 @@ test.method ("http.Order", "applyOrders", true)
         .returnsInstanceOf (Array)
         .expectingPropertyToBeOfType ("result.0", "C")
         .expectingPropertyToBeOfType ("result.1", "C")
-        .expectingPropertyToBeOfType ("result.2", "B")
-        .expectingPropertyToBeOfType ("result.3", "D")
+        .expectingPropertyToBeOfType ("result.2", "D")
+        .expectingPropertyToBeOfType ("result.3", "B")
         .expectingPropertyToBeOfType ("result.4", "A")
         .expectingPropertyToBe ("result.0.tag", "c1")
         .expectingPropertyToBe ("result.1.tag", "c2")
+        .commit ()
+
+    .should ("sort the objects based on the given order if orderBefore and orderAfter are not used")
+        .up (function ()
+        {
+            const A = nit.defineClass ("A")
+                .registerPlugin ("http.Order")
+            ;
+
+            const B = nit.defineClass ("B")
+                .registerPlugin ("http.Order")
+            ;
+
+            const C = nit.defineClass ("C")
+                .registerPlugin ("http.Order")
+                .field ("<tag>", "string")
+            ;
+
+            const D = nit.defineClass ("D")
+                .registerPlugin ("http.Order")
+            ;
+
+            this.args.push ([new A, new B, new C ("c1"), new D, new C ("c2")]);
+        })
+        .returnsInstanceOf (Array)
+        .expectingPropertyToBeOfType ("result.0", "A")
+        .expectingPropertyToBeOfType ("result.1", "B")
+        .expectingPropertyToBeOfType ("result.2", "C")
+        .expectingPropertyToBeOfType ("result.3", "C")
+        .expectingPropertyToBeOfType ("result.4", "D")
         .commit ()
 ;
 

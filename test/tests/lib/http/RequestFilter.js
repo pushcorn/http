@@ -1,6 +1,28 @@
 const { Readable } = require ("stream");
 
 
+test.method ("http.RequestFilter.Descriptor", "build", true)
+    .should ("return an instance of http.RequestFilter")
+        .given ("http:json-body-parser")
+        .returnsInstanceOf ("http.requestfilters.JsonBodyParser")
+        .commit ()
+
+    .should ("adds the specified conditions to the filter class")
+        .given ("http:json-body-parser",
+        {
+            conditions:
+            {
+                name: "http:request-method",
+                options: "POST"
+            }
+        })
+        .returnsInstanceOf ("http.requestfilters.JsonBodyParser")
+        .expectingPropertyToBe ("result.constructor.conditions.length", 1)
+        .expectingPropertyToBeOfType ("result.constructor.conditions.0", "http.conditions.RequestMethod")
+        .commit ()
+;
+
+
 test.method ("http.RequestFilter", "parseStream", true)
     .should ("parse the stream with the given encoding")
         .given (Readable.from (Buffer.from ("test")))
