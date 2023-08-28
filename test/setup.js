@@ -41,9 +41,9 @@ nit.test.Strategy
 
         return this.http.Server.Descriptor.build (descriptor);
     })
-    .method ("createService", function (descriptor)
+    .method ("createService", function ()
     {
-        return this.http.Service.Descriptor.build (descriptor);
+        return this.http.Service.Descriptor.build (...arguments);
     })
     .method ("useApi", function (descriptor)
     {
