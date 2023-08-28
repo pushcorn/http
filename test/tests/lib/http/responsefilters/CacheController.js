@@ -14,7 +14,7 @@ test.method ("http.responsefilters.CacheController", "applicableTo")
         {
             ctx.res.statusCode = 200;
         }))
-        .returns (false)
+        .returns (true)
         .commit ()
 
     .given (nit.do (Context.new ("POST"), ctx =>
@@ -91,7 +91,7 @@ test.method ("http.responsefilters.CacheController", "apply")
             ctx.responseHeader ("Last-Modified", new Date ().toUTCString ());
         }))
         .expectingPropertyToBe ("args.0.res.statusCode", 304)
-        .expectingPropertyToBe ("args.0.responseHeaders.Cache-Control", "max-age=0, must-revalidate")
+        .expectingPropertyToBe ("args.0.responseHeaders.Cache-Control", "no-cache")
         .expectingPropertyToBe ("args.0.responseHeaders.Last-Modified", undefined)
         .commit ()
 
@@ -100,6 +100,6 @@ test.method ("http.responsefilters.CacheController", "apply")
             ctx.responseHeader ("ETag", `"1234"`);
         }))
         .expectingPropertyToBe ("args.0.res.statusCode", 0)
-        .expectingPropertyToBe ("args.0.responseHeaders.Cache-Control", "max-age=0, must-revalidate")
+        .expectingPropertyToBe ("args.0.responseHeaders.Cache-Control", "no-cache")
         .commit ()
 ;

@@ -9,6 +9,7 @@ test.method ("http.conditions.RequestPath", "check")
         })
         .given (Context.new ("GET", "/users/1234"))
         .returns (true)
+        .expectingPropertyToBe ("args.0.pathParams", { id: "1234" })
         .commit ()
 
     .should ("return %{result} when (path) = (/groups/:id) and the request path is %{args[0].req.path}")

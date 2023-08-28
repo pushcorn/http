@@ -97,12 +97,25 @@ test.method ("http.responsefilters.BodyCompressor", "apply")
         .expectingPropertyToBe ("args.0.responseHeaders.ETag", `"1234-d"`)
         .commit ()
 
+    .should ("skip compression if the size is less than the threshold")
+        .up (s => s.createArgs = 100)
+        .given (nit.do (Context.new (), ctx =>
+        {
+            ctx.responseEncoding = "gzip";
+            ctx.response = nit.new ("http.responses.File", nit.path.join (test.TEST_PROJECT_PATH, "resources/html/page-two.html"));
+        }))
+        .before (async (s) => await s.args[0].writeResponse ())
+        .expectingPropertyToBe ("args.0.responseBody.constructor.name", "ReadStream")
+        .expectingPropertyToBe ("args.0.responseHeaders.ETag", undefined)
+        .commit ()
+
     .should ("use the pre-compressed gzip file if available")
         .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseEncoding = "gzip";
-            ctx.response = nit.new ("http.responses.FileReturned", "resources/html/page-one.html");
+            ctx.response = nit.new ("http.responses.File", nit.path.join (test.TEST_PROJECT_PATH, "resources/html/page-one.html"));
         }))
+        .before (async (s) => await s.args[0].writeResponse ())
         .expectingPropertyToBe ("args.0.responseBody.constructor.name", "ReadStream")
         .expectingPropertyToBe ("args.0.responseHeaders.ETag", /^W\//)
         .commit ()
@@ -111,21 +124,23 @@ test.method ("http.responsefilters.BodyCompressor", "apply")
         .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseEncoding = "gzip";
-            ctx.response = nit.new ("http.responses.FileReturned", "resources/html/page-two.html");
+            ctx.response = nit.new ("http.responses.File", nit.path.join (test.TEST_PROJECT_PATH, "resources/html/page-two.html"));
         }))
         .before (function ()
         {
             this.object.threshold = 4;
         })
+        .before (async (s) => await s.args[0].writeResponse ())
         .expectingPropertyToBe ("args.0.responseBody.constructor.name", "Gzip")
         .expectingPropertyToBe ("args.0.responseHeaders.ETag", /^W\/.*-12-g/)
+        .expectingPropertyToBe ("args.0.responseHeaders.Content-Length", undefined)
         .commit ()
 
     .should ("not compress the body stream if the file size is smaller than the threshold")
         .given (nit.do (Context.new (), ctx =>
         {
             ctx.responseEncoding = "gzip";
-            ctx.response = nit.new ("http.responses.FileReturned", "resources/html/page-two.html");
+            ctx.response = nit.new ("http.responses.File", "resources/html/page-two.html");
         }))
         .expectingPropertyToBe ("args.0.responseHeaders.ETag")
         .commit ()
