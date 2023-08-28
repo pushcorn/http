@@ -762,3 +762,66 @@ test.method ("http.Context", "leave",
         .expectingPropertyToBe ("object.pathOverrides", [])
         .commit ()
 ;
+
+
+test.method ("http.Context", "resolveAsset")
+    .should ("return the absolute path of the given path")
+        .up (s => s.createArgs =
+        {
+            req: new MockIncomingMessage ("GET", "/"),
+            res: new MockServerResponse,
+            assetResolvers: { roots: "public" }
+        })
+        .given ("index.html")
+        .returns (nit.path.join (test.TEST_PROJECT_PATH, "../public/index.html"))
+        .commit ()
+
+    .should ("return undefined if the given path was invalid")
+        .up (s => s.createArgs =
+        {
+            req: new MockIncomingMessage ("GET", "/"),
+            res: new MockServerResponse,
+            assetResolvers: { roots: "public" }
+        })
+        .given ("index2.html")
+        .returns ()
+        .commit ()
+;
+
+
+test.method ("http.Context", "loadTemplate")
+    .should ("return the template for the given path")
+        .up (s => s.createArgs =
+        {
+            req: new MockIncomingMessage ("GET", "/"),
+            res: new MockServerResponse,
+            assetResolvers: { roots: "public" }
+        })
+        .given ("index.html")
+        .returns (/^<\!DOCTYPE html>/)
+        .commit ()
+
+    .should ("use the template loaders to load the template")
+        .up (s => s.createArgs =
+        {
+            req: new MockIncomingMessage ("GET", "/"),
+            res: new MockServerResponse,
+            assetResolvers: { roots: "public" },
+            templateLoaders: { extensions: ".html" }
+        })
+        .given ("index.html")
+        .returns (/^<\!DOCTYPE html>/)
+        .expecting ("the template was parsed by the loader", true, s => !s.result.includes ("{%"))
+        .commit ()
+
+    .should ("return undefined if the template cannot be loaded")
+        .up (s => s.createArgs =
+        {
+            req: new MockIncomingMessage ("GET", "/"),
+            res: new MockServerResponse,
+            assetResolvers: { roots: "public" }
+        })
+        .given ("index2.html")
+        .returns ()
+        .commit ()
+;

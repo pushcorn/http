@@ -1,36 +1,31 @@
 const Context = nit.require ("http.Context");
 
 
-test.object ("http.serviceplugins.FileServer")
-    .should ("be able to resolve aliased path")
-        .given ({ roots: "@@pushcorn/nit" })
-        .expectingPropertyToBe ("result.roots", [nit.HOME])
-        .commit ()
-
-    .should ("generate the root paths with nit.ASSET_PATHS if the path is relative ")
-        .given ({ roots: "dist" })
-        .expectingPropertyToContain ("result.roots", [nit.path.join (nit.HOME, "dist")])
-        .commit ()
-;
-
-
 test.method ("http.serviceplugins.FileServer", "resolve")
     .should ("return %{result} if the path is %{args.0}")
         .given ()
-        .returns ()
+        .returns (nit.path.join (nit.PATH_ALIASES["@pushcorn/http"], "public/index.html"))
         .commit ()
 
     .given ("resources/html/page-two.html")
         .returns ()
         .commit ()
 
-    .given (nit.resolveAssetDir ("resources/html"))
-        .init (s => s.createArgs = { indexes: "page-one.html" })
+    .up (s => s.createArgs =
+        {
+            roots: nit.resolveAssetDir ("resources/html"),
+            indexes: "page-one.html"
+        })
+        .given ()
         .returns (nit.resolveAsset ("resources/html/page-one.html"))
         .commit ()
 
-    .given (nit.resolveAssetDir ("resources/html"))
-        .init (s => s.createArgs = { indexes: "page-three.html" })
+    .up (s => s.createArgs =
+        {
+            roots: nit.resolveAssetDir ("resources/html"),
+            indexes: "page-three.html"
+        })
+        .given ()
         .returns ()
         .commit ()
 ;
@@ -44,7 +39,7 @@ test.method ("http.serviceplugins.FileServer", "postDispatch")
         .commit ()
 
     .should ("skip if the index file does not exist")
-        .init (s => s.createArgs = { indexes: "a.html" })
+        .up (s => s.createArgs = { indexes: "a.html" })
         .given (null, Context.new ())
         .expectingPropertyToBe ("args.1.response")
         .commit ()

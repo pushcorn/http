@@ -23,8 +23,8 @@ module.exports = function (nit)
         .method ("listen", function (port, address, cb)
         {
             this.listening = true;
-            this.port = port || 80;
-            this.addr = address || "0.0.0.0";
+            this.port = port;
+            this.addr = address;
 
             nit.invoke (cb);
 

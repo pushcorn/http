@@ -2,8 +2,8 @@ const Context = nit.require ("http.Context");
 
 
 test.method ("http.conditions.Hostname", "check")
-    .should ("return %{result} when the name pattern is %{createArgs[0]|format} and hostname is %{args[0].req.hostname|format}")
-        .init (function ()
+    .should ("return %{result} when the name pattern is * and hostname is %{args[0].req.hostname|format}")
+        .up (function ()
         {
             this.createArgs = ["*"];
         })
@@ -11,8 +11,8 @@ test.method ("http.conditions.Hostname", "check")
         .returns (true)
         .commit ()
 
-    .reset ()
-        .init (function ()
+    .should ("return %{result} when the name pattern is %.pushcorn.com and hostname is %{args[0].req.hostname|format}")
+        .up (function ()
         {
             this.createArgs = ["%.pushcorn.com"];
         })
@@ -20,8 +20,8 @@ test.method ("http.conditions.Hostname", "check")
         .returns (false)
         .commit ()
 
-    .reset ()
-        .init (function ()
+    .should ("return %{result} when the name pattern is dev.%.pushcorn.com and hostname is %{args[0].req.hostname|format}")
+        .up (function ()
         {
             this.createArgs = ["dev.%.pushcorn.com"];
         })
@@ -29,8 +29,8 @@ test.method ("http.conditions.Hostname", "check")
         .returns (true)
         .commit ()
 
-    .reset ()
-        .init (function ()
+    .should ("return %{result} when the name pattern is %.pushcorn.com and hostname is %{args[0].req.hostname|format}")
+        .up (function ()
         {
             this.createArgs = ["%.pushcorn.com"];
         })
@@ -38,8 +38,8 @@ test.method ("http.conditions.Hostname", "check")
         .returns (true)
         .commit ()
 
-    .reset ()
-        .init (function ()
+    .should ("return %{result} when the name pattern is a.pushcorn.com and hostname is %{args[0].req.hostname|format}")
+        .up (function ()
         {
             this.createArgs = ["a.pushcorn.com"];
         })
@@ -47,8 +47,8 @@ test.method ("http.conditions.Hostname", "check")
         .returns (true)
         .commit ()
 
-    .reset ()
-        .init (function ()
+    .should ("return %{result} when the name pattern is a.pushcorn.com and hostname is %{args[0].req.hostname|format}")
+        .up (function ()
         {
             this.createArgs = ["a.pushcorn.com"];
         })
@@ -56,8 +56,8 @@ test.method ("http.conditions.Hostname", "check")
         .returns (false)
         .commit ()
 
-    .reset ()
-        .init (function ()
+    .should ("return %{result} when the name pattern is ~(abc|def).pushcorn.com and hostname is %{args[0].req.hostname|format}")
+        .up (function ()
         {
             this.createArgs = ["~(abc|def).pushcorn.com"];
         })
@@ -66,7 +66,7 @@ test.method ("http.conditions.Hostname", "check")
         .commit ()
 
     .reset ()
-        .init (function ()
+        .up (function ()
         {
             this.createArgs = ["~(abc|def).pushcorn.com"];
         })
@@ -74,8 +74,8 @@ test.method ("http.conditions.Hostname", "check")
         .returns (false)
         .commit ()
 
-    .reset ()
-        .init (function ()
+    .should ("return %{result} when the name pattern is (abc|def).pushcorn.com and hostname is %{args[0].req.hostname|format}")
+        .up (function ()
         {
             this.createArgs = ["(abc|def).pushcorn.com"];
         })

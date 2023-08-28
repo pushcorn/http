@@ -28,7 +28,35 @@ test.method ("http.PathParser", "parse", { createArgs: ["/users/:id"] })
 
     .given ("/users/1234?name=john")
         .up (function () { this.createArgs = ["/users/:id?a=b"]; })
-        .returns ({ id: "1234" })
+        .returns ()
+        .commit ()
+;
+
+
+test.method ("http.PathParser", "parse", { createArgs: ["/hello"] })
+    .should ("parse the path %{args.0|format} into %{result}")
+        .given ("/hello")
+        .returns ({})
+        .commit ()
+
+    .given ("/hello2")
+        .returns ()
+        .commit ()
+
+    .given ("/hello.txt")
+        .returns ()
+        .commit ()
+;
+
+
+test.method ("http.PathParser", "parse", { createArgs: ["/"] })
+    .should ("parse the path %{args.0|format} into %{result}")
+        .given ("/")
+        .returns ({})
+        .commit ()
+
+    .given ("/?a=b")
+        .returns ({})
         .commit ()
 ;
 
@@ -54,7 +82,7 @@ test.method ("http.PathParser", "build", { createArgs: ["/users/:id"] })
         .returns ("/users/1234/name/john")
         .commit ()
 
-    .given ({})
+    .given ({ _: 1 })
         .up (function () { this.createArgs = ["/users/*"]; })
         .returns ("/users")
         .commit ()

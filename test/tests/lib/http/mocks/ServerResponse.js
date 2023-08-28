@@ -26,19 +26,30 @@ test.method ("http.mocks.ServerResponse", "writeHead")
 
 test.method ("http.mocks.ServerResponse", "_write")
     .should ("add the data chunk")
-        .given (Buffer.from ("a"), "", function done () { done.called = true; })
+        .given (Buffer.from ("ab"), "", function done () { done.called = true; })
         .returns ()
-        .expectingPropertyToBe ("object.data", Buffer.from ("a"))
+        .expectingPropertyToBe ("object.data", Buffer.from ("ab"))
         .expectingPropertyToBe ("args.2.called", true)
         .commit ()
 
-    .given (Buffer.from ("b"), "", function done () { done.called = true; })
+    .given (Buffer.from ("cd"), "", function done () { done.called = true; })
         .before (function ()
         {
-            this.object.data = Buffer.from ("a");
+            this.object.data = Buffer.from ("ab");
         })
         .returns ()
-        .expectingPropertyToBe ("object.data", Buffer.from ("ab"))
+        .expectingPropertyToBe ("object.data", Buffer.from ("abcd"))
+        .expectingPropertyToBe ("args.2.called", true)
+        .commit ()
+;
+
+
+test.method ("http.mocks.ServerResponse", "end")
+    .should ("end response")
+        .given ("This is a test", "", function done () { done.called = true; })
+        .after (async () => await nit.sleep (50))
+        .returnsInstanceOf ("http.mocks.ServerResponse")
+        .expectingPropertyToBe ("object.data", Buffer.from ("This is a test"))
         .expectingPropertyToBe ("args.2.called", true)
         .commit ()
 ;

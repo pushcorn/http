@@ -4,7 +4,7 @@ module.exports = function (nit, http, Self)
 
 
     return (Self = nit.defineClass ("http.PathParser"))
-        .constant ("SEGMENT_PATTERN", /^\/:?[\w-_*]+/)
+        .constant ("SEGMENT_PATTERN", /^\/:?[\w_*-]*/)
         .m ("error.duplicate_param_name", "The parameter '%{param}' cannot be redefined.")
         .field ("<path>", "string", "The path expression.")
         .property ("pattern", "RegExp", { writer: writer }) // The parsed path expression.
@@ -42,7 +42,7 @@ module.exports = function (nit, http, Self)
                 {
                     addParam (seg.slice (2));
 
-                    pattern += nit.escapeRegExp ("/") + "([^/?=]+)";
+                    pattern += nit.escapeRegExp ("/") + "([^/?=.]+)";
                 }
                 else
                 if (seg[1] == "*")
@@ -61,13 +61,16 @@ module.exports = function (nit, http, Self)
             }
 
             self.rest = writer.value (path.slice (lastPos));
-            self.pattern = writer.value (new RegExp ("^" + pattern, "i"));
+            self.pattern = writer.value (new RegExp ("^" + pattern + nit.escapeRegExp (self.rest) + "$", "i"));
         })
 
         .method ("parse", function (path)
         {
-            var params  = {};
+            var params = {};
             var match;
+
+            path = path.split ("?").shift ();
+            path = decodeURIComponent (path);
 
             if ((match = path.match (this.pattern)))
             {
@@ -83,7 +86,7 @@ module.exports = function (nit, http, Self)
         {
             var self = this;
 
-            return (self.segments.length ? "/" : "")
+            return "/"
                 + self.segments
                     .map (function (s)
                     {

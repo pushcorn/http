@@ -39,6 +39,7 @@ test.method ("http.responsefilters.CssCompiler", "apply")
         {
             ctx.responseBody = Buffer.from ("a { color: red }");
         }))
+        .after (async (s) => await s.args[0].writeResponse ())
         .expectingPropertyToBe ("args.0.responseBody", nit.trim.text`
         a {
           color: red;

@@ -28,7 +28,7 @@ module.exports = function (nit, http)
         {
             let { name, title } = ctx.request;
 
-            ctx.send (`Hello ${title ? title + " " : ""}${name}!`);
+            ctx.respond (`Hello ${title ? title + " " : ""}${name}!`);
         })
     ;
 };

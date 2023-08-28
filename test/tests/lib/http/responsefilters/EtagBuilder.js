@@ -40,8 +40,9 @@ test.method ("http.responsefilters.EtagBuilder", "apply")
 
     .given (nit.do (Context.new (), ctx =>
         {
-            ctx.response = nit.new ("http.responses.FileReturned", "package.json");
+            ctx.response = nit.new ("http.responses.File", nit.path.join (test.TEST_PROJECT_PATH, "../package.json"));
         }))
+        .before (async (s) => await s.args[0].writeResponse ())
         .expectingPropertyToBe ("args.0.responseHeaders.ETag", /^W\/"/)
         .commit ()
 

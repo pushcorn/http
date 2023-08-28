@@ -11,7 +11,7 @@ test.method ("http.services.ApiServer", "init")
                 excludes: "myapp.apis.Hello"
             };
         })
-        .expectingPropertyToBe ("result.apis.length", 2)
+        .expectingPropertyToBe ("result.handlers.length", 2)
         .commit ()
 
     .should ("include only the specified apis")
@@ -23,7 +23,7 @@ test.method ("http.services.ApiServer", "init")
                 includes: "http.*"
             };
         })
-        .expectingPropertyToBe ("result.apis.length", 1)
+        .expectingPropertyToBe ("result.handlers.length", 1)
         .commit ()
 ;
 
@@ -34,7 +34,7 @@ test.method ("http.services.ApiServer", "dispatch")
         .given (Context.new ("GET", "/api"))
         .before (async (s) =>
         {
-            s.class.serviceplugin ("http:path-prefixer", "/api");
+            s.class.serviceplugin ("http:mount-point", "/api");
 
             await s.object.init ();
         })
@@ -437,16 +437,9 @@ test.method ("http.services.ApiServer", "dispatch")
             await s.object.init ();
         })
         .given (Context.new ("GET", "/api/hello?name=John&title=Mr."))
-        .after (s =>
-        {
-            s.responseJson = nit.toJson (s.args[0].response.toPojo (), "  ");
-        })
-        .expectingPropertyToBeOfType ("args.0.response", "http.responses.HelloMessageReturned")
-        .expectingPropertyToBe ("responseJson", nit.trim.text`
-        {
-          "message": "Hello Mr. John!"
-        }
-        `)
+        .after (s => s.args[0].writeResponse ())
+        .expectingPropertyToBeOfType ("args.0.response", "myapp.responses.HelloMessageReturned")
+        .expectingPropertyToBe ("args.0.responseBody", `{"message":"Hello Mr. John!"}`)
         .expectingPropertyToBe ("args.0.status", 200)
         .expectingPropertyToBe ("args.0.res.statusMessage", "The hello message has been returned.")
         .expectingPropertyToBe ("args.0.responseHeaders.X-Response-Name", "HelloMessageReturned")
@@ -458,15 +451,7 @@ test.method ("http.services.ApiServer", "dispatch")
         {
             await s.object.init ();
         })
-        .given (Context.new ("GET", "/api/hello?name=Jane"))
-        .after (s =>
-        {
-            s.responseJson = nit.toJson (s.args[0].response.toPojo (), "  ");
-        })
-        .expectingPropertyToBe ("responseJson", nit.trim.text`
-        {
-          "message": "Hello Jane!"
-        }
-        `)
+        .given (Context.new ("GET", "/api/hello2?name=Jane"))
+        .expectingPropertyToBe ("args.0.responseHeaders.X-Response-Name", undefined)
         .commit ()
 ;

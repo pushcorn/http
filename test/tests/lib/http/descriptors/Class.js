@@ -1,12 +1,22 @@
+const Context = nit.defineClass ("test.Context")
+    .mixin ("http:describable")
+    .defineClassDescriptor (Descriptor =>
+    {
+        Descriptor
+            .field ("req", "object?", "The request")
+        ;
+    })
+;
+
+
 test.method ("http.descriptors.Class", "build")
     .should ("return the runtime class")
-    .project ("myapp")
     .up (s =>
     {
-        s.class = s.http.Context.Descriptor;
+        s.class = Context.Descriptor;
     })
     .returnsInstanceOf (Function)
-    .expectingPropertyToBe ("result.name", "http.Context")
+    .expectingPropertyToBe ("result.name", "test.Context")
     .expectingPropertyToBe ("result.classChain.length", 4)
     .commit ()
 ;

@@ -18,7 +18,6 @@ function newService ()
 
     service.server = new http.Server;
     service.server.nodeServer = no_http.createServer ();
-    service.contextClass = nit.defineClass ("ServiceContext", "http.Context");
 
     return service;
 }
@@ -26,12 +25,12 @@ function newService ()
 
 test.method ("http.serviceplugins.SocketIoServer.Manager", "shouldHandleRequest")
     .should ("return %{result} if (path, req.path) = (%{createArgs.1}, %{args[0].path}")
-        .init (s => s.createArgs = [newService (), "/sio"])
+        .up (s => s.createArgs = [newService (), "/sio"])
         .given (nit.new ("http.mocks.IncomingMessage", "GET", "/socket.io"))
         .returns (false)
         .commit ()
 
-    .init (s => s.createArgs = [newService (), "/socket.io"])
+    .up (s => s.createArgs = [newService (), "/socket.io"])
         .given (nit.new ("http.mocks.IncomingMessage", "GET", "/socket.io/ab"))
         .returns (true)
         .commit ()
@@ -40,7 +39,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "shouldHandleRequest"
 
 test.method ("http.serviceplugins.SocketIoServer.Manager", "handleRequest")
     .should ("handle the request if possible")
-        .init (s => s.createArgs = [newService ()])
+        .up (s => s.createArgs = [newService ()])
         .given (http.Context.new ("GET", "/socket.io/ab"))
         .mock ("object.engine", "handleRequest")
         .returns (true)
@@ -48,7 +47,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "handleRequest")
         .commit ()
 
     .should ("return false if the request is not for socket.io")
-        .init (s => s.createArgs = [newService (), "/sio"])
+        .up (s => s.createArgs = [newService (), "/sio"])
         .given (http.Context.new ("GET", "/socket.io/ab"))
         .mock ("object.io.engine", "handleRequest")
         .returns (false)
@@ -56,7 +55,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "handleRequest")
         .commit ()
 
     .should ("respond with the client file if serveClient is true")
-        .init (s => s.createArgs = [newService (), { serveClient: true }])
+        .up (s => s.createArgs = [newService (), { serveClient: true }])
         .given (http.Context.new ("GET", "/socket.io/socket.io.js"))
         .mock ("object.engine", "handleRequest")
         .returns (true)
@@ -68,7 +67,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "handleRequest")
 
 test.method ("http.serviceplugins.SocketIoServer.Manager", "handleUpgrade")
     .should ("handle the request if possible")
-        .init (s => s.createArgs = [newService ()])
+        .up (s => s.createArgs = [newService ()])
         .given (nit.new ("http.mocks.IncomingMessage", "GET", "/socket.io/ab"))
         .mock ("object.io.engine", "handleUpgrade")
         .returns (true)
@@ -76,7 +75,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "handleUpgrade")
         .commit ()
 
     .should ("return false if the request is not for socket.io")
-        .init (s => s.createArgs = [newService (), "/sio"])
+        .up (s => s.createArgs = [newService (), "/sio"])
         .given (
             nit.new ("http.mocks.IncomingMessage", "GET", "/socket.io/ab"),
             { writable: false }
@@ -87,7 +86,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "handleUpgrade")
         .commit ()
 
     .should ("return false if the request is not for socket.io")
-        .init (s => s.createArgs = [newService (), "/sio"])
+        .up (s => s.createArgs = [newService (), "/sio"])
         .given (
             nit.new ("http.mocks.IncomingMessage", "GET", "/socket.io/ab"),
             { writable: true, bytesWritten: 0, end: nit.noop }
@@ -103,7 +102,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "handleUpgrade")
 
 test.method ("http.serviceplugins.SocketIoServer.Manager", "close")
     .should ("close the engine and sockets")
-        .init (s => s.createArgs = [newService ()])
+        .up (s => s.createArgs = [newService ()])
         .mock ("object.io", "close")
         .mock ("object.io", "disconnectSockets")
         .mock ("object.engine", "close")
@@ -117,14 +116,14 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "close")
 
 test.method ("http.serviceplugins.SocketIoServer.Manager", "dispatch")
     .should ("ask the service to dispatch the request")
-        .init (s => s.createArgs = [newService ()])
+        .up (s => s.createArgs = [newService ()])
         .given (new MockIncomingMessage ("GET", "/items/1"), new MockServerResponse ())
         .mock ("createArgs.0", "dispatch")
         .returnsInstanceOf (http.Context)
         .commit ()
 
     .should ("handle the dispatch error")
-        .init (s => s.createArgs = [newService ()])
+        .up (s => s.createArgs = [newService ()])
         .given (new MockIncomingMessage ("GET", "/items/1"), new MockServerResponse ())
         .mock ("createArgs.0", "dispatch", () => { throw 455; }) // eslint-disable-line no-throw-literal
         .returnsInstanceOf (http.Context)
@@ -132,7 +131,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "dispatch")
         .commit ()
 
     .should ("handle the dispatch error")
-        .init (s => s.createArgs = [newService ()])
+        .up (s => s.createArgs = [newService ()])
         .given (new MockIncomingMessage ("GET", "/items/1"), new MockServerResponse ())
         .mock ("createArgs.0", "dispatch", () => { throw http.responseFor (403); })
         .returnsInstanceOf (http.Context)
@@ -140,7 +139,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "dispatch")
         .commit ()
 
     .should ("handle the dispatch error")
-        .init (s => s.createArgs = [newService ()])
+        .up (s => s.createArgs = [newService ()])
         .given (new MockIncomingMessage ("GET", "/items/1"), new MockServerResponse ())
         .mock ("createArgs.0", "dispatch", () => { throw new Error ("UNKNOWN"); })
         .mock ("object", "error")
@@ -150,17 +149,20 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "dispatch")
         .commit ()
 
     .should ("handle the dispatch error")
-        .init (s => s.createArgs = [newService ()])
-        .before (function ()
+        .up (s =>
         {
-            this.createArgs[0].contextClass.onPreConstruct (function ()
+            let serv = newService ();
+
+            serv.constructor.onDispatch (function ()
             {
                 throw new Error ("Context init error!");
             });
+
+            s.createArgs = [serv];
         })
         .given (new MockIncomingMessage ("GET", "/items/1"), new MockServerResponse ())
         .mock ("object", "error")
-        .returns ()
+        .returnsInstanceOf ("http.Context")
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "error.unexpected_error")
         .expectingPropertyToBe ("mocks.0.invocations.0.args.1.message", "Context init error!")
         .commit ()

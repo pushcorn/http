@@ -1,4 +1,4 @@
-test.method ("http.MimeTypeMatcher", "matches", { createArgs: ["*/json"] })
+test.method ("http.utils.MimeTypeMatcher", "matches", { createArgs: ["*/json"] })
     .should ("return %{result} if the pattern is %{createArgs.0|format} and the type is %{args.0|format}")
         .given ("application/json")
         .returns (true)
@@ -9,7 +9,7 @@ test.method ("http.MimeTypeMatcher", "matches", { createArgs: ["*/json"] })
         .commit ()
 ;
 
-test.method ("http.MimeTypeMatcher", "matches", { createArgs: ["*/*+json"] })
+test.method ("http.utils.MimeTypeMatcher", "matches", { createArgs: ["*/*+json"] })
     .should ("return %{result} if the pattern is %{createArgs.0|format} and the type is %{args.0|format}")
         .given ("application/calendar+json")
         .returns (true)
