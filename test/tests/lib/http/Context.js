@@ -657,7 +657,7 @@ test.method ("http.Context", "writeResponse")
             this.object.response = nit.new ("http.responses.Json", { json: { v: 1 } });
 
             const StreamResponse = http.defineResponse ("Stream")
-                .method ("toBody", function (ctx)
+                .method ("toBody", function ()
                 {
                     return nit.fs.createReadStream (__filename);
                 })
@@ -798,7 +798,7 @@ test.method ("http.Context", "loadTemplate")
             assetResolvers: { roots: "public" }
         })
         .given ("index.html")
-        .returns (/^<\!DOCTYPE html>/)
+        .returns (/^<!DOCTYPE html>/)
         .commit ()
 
     .should ("use the template loaders to load the template")
@@ -810,7 +810,7 @@ test.method ("http.Context", "loadTemplate")
             templateLoaders: { extensions: ".html" }
         })
         .given ("index.html")
-        .returns (/^<\!DOCTYPE html>/)
+        .returns (/^<!DOCTYPE html>/)
         .expecting ("the template was parsed by the loader", true, s => !s.result.includes ("{%"))
         .commit ()
 

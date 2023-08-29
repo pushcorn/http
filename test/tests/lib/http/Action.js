@@ -1,7 +1,3 @@
-const http = nit.require ("http");
-const Context = nit.require ("http.Context");
-
-
 test.method ("http.Action.Descriptor", "build")
     .should ("add the conditions for the specified endpoint")
         .up (s =>
@@ -28,10 +24,13 @@ test.method ("http.Action.Descriptor", "build")
 ;
 
 
-test.method ("http.Action", "run")
+test.method ("http.Action", "dispatch")
     .should ("process the request")
-        .up (s => s.class = http.defineAction ("Test", true).onRun (ctx => ctx.processed = true))
-        .given (Context.new ("GET", "/users"))
+        .up (s => s.class = s.http
+            .defineAction ("Test", true)
+            .onRun (ctx => ctx.root.processed = true)
+        )
+        .givenContext ()
         .returns ()
         .expectingPropertyToBe ("args.0.processed", true)
         .expectingPropertyToBeOfType ("args.0.request", "http.actions.Test.Request")

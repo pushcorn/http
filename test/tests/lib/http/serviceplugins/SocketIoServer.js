@@ -60,7 +60,7 @@ test.method ("http.serviceplugins.SocketIoServer.Manager", "handleRequest")
         .mock ("object.engine", "handleRequest")
         .returns (true)
         .expectingPropertyToBe ("mocks.0.invocations.length", 0)
-        .expectingPropertyToBe ("args.0.response.constructor.name", "http.responses.FileReturned")
+        .expectingPropertyToBe ("args.0.response.constructor.name", "http.responses.File")
         .commit ()
 ;
 

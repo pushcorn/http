@@ -3,9 +3,11 @@ test.method ("http.apis.GetApiSpec", "run")
     .useApi ("http:get-api-spec")
     .before (s =>
     {
-        let ctx = s.args = s.Context.new ("GET", "/");
+        let ctx = s.Context.new ("GET", "/");
 
         ctx.service = s.service;
+
+        s.args = new s.api.constructor.Context (ctx);
     })
     .expectingPropertyToBeOfType ("args.0.response", "http.responses.ApiSpecReturned")
     .expectingMethodToReturnValue ("args.0.response.spec.toJson", "  ", nit.trim.text`

@@ -29,7 +29,7 @@ test.method ("http.AssetResolver", "resolve")
         .up (s => s.createArgs =
         {
             extensions: ".png",
-            roots: nit.path.join (test.TEST_PROJECT_PATH, "resources"),
+            roots: nit.path.join (test.TEST_PROJECT_PATH, "resources")
         })
         .given ("html/page-one.html")
         .returns ()

@@ -635,7 +635,8 @@ test.object ("http.Server")
     .after (async function ()
     {
         let server = this.server = this.result;
-        let api1 = new http.defineApi ("Hello")
+
+        http.defineApi ("Hello")
             .endpoint ("GET", "/hello")
             .response ("http.responses.Hello")
             .defineRequest (Request =>
