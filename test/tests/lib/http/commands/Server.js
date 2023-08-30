@@ -35,4 +35,45 @@ test.command ("http.commands.Server")
         })
         .returns ("")
         .commit ()
+
+    .should ("accept custom root")
+        .mock (nit, "log")
+        .before (s => s.class.returnServer = true)
+        .given (
+        {
+            port: 0,
+            stopTimeout: 0,
+            root: "."
+        })
+        .after (async (s) =>
+        {
+            await nit.sleep (20);
+            await s.object.server.stop ();
+            await nit.sleep (20);
+        })
+        .returnsInstanceOf ("http.Server")
+        .expectingPropertyToBe ("result.hosts.0.services.0.assetResolvers.0.assetResolver.roots", [nit.path.join (test.TEST_PROJECT_PATH, "..")])
+        .commit ()
+
+    .should ("accept custom descriptor")
+        .mock (nit, "log")
+        .before (s => s.class.returnServer = true)
+        .given (
+        {
+            port: 0,
+            stopTimeout: 0,
+            descriptor:
+            {
+                services: "http:file-server"
+            }
+        })
+        .after (async (s) =>
+        {
+            await nit.sleep (20);
+            await s.object.server.stop ();
+            await nit.sleep (20);
+        })
+        .returnsInstanceOf ("http.Server")
+        .expectingPropertyToBeOfType ("result.hosts.0.services.0", "http.services.FileServer")
+        .commit ()
 ;
