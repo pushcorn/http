@@ -182,6 +182,13 @@ test.object ("http.ClientRequestOptions")
         .expectingPropertyToBe ("result.headers.Content-Length", 4)
         .commit ()
 
+    .given ("http://pushcorn.com/ab", { body: { a: 3 } })
+        .returnsInstanceOf ("http.ClientRequestOptions")
+        .expectingPropertyToBe ("result.path", "/ab")
+        .expectingPropertyToBe ("result.headers.Content-Length", 7)
+        .expectingPropertyToBe ("result.headers.Content-Type", "application/json")
+        .commit ()
+
     .given (new URL ("http://pushcorn.com:8080/ab"))
         .returnsInstanceOf ("http.ClientRequestOptions")
         .expectingPropertyToBe ("result.path", "/ab")

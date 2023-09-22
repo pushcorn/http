@@ -20,6 +20,7 @@ module.exports = function (nit, http)
                         condition: "nit.is.not.empty (opt2)"
                     })
                 .parameter ("opt5", "integer")
+                .parameter ("opt6...", "string*")
             ;
         })
         .response ("myapp:HelloMessageReturned", "http:ValidationFailed")

@@ -142,6 +142,7 @@ test.method ("http.Server", "stop")
             this.object.stopTimeout = 5;
             this.object.addSocket (socket);
             this.object.nodeServer = new MockNodeHttpServer ();
+            this.object.ready.resolve ();
         })
         .mock ("object", "endSockets")
         .mock ("object", "info")
@@ -167,6 +168,7 @@ test.method ("http.Server", "stop")
             this.object.addSocket (socket);
             this.object.nodeServer = new MockNodeHttpServer ();
             this.object.hosts = s.http.Host.Descriptor.build ();
+            this.object.ready.resolve ();
         })
         .mock ("object", "endSockets")
         .mock ("object", "info")
@@ -336,7 +338,6 @@ test.method ("http.Server", "start")
         {
             let server = this.result;
 
-            await nit.sleep (20);
             let port = server.realPort;
             let res = await no_http_get (`http://127.0.0.1:${port}/`);
 

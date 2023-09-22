@@ -15,7 +15,7 @@ test.command ("http.commands.Server")
             await s.result.stop ();
             await nit.sleep (20);
         })
-        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /server started/)
+        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /nit http server.*started/)
         .expectingPropertyToBe ("port", /\d+/)
         .commit ()
 

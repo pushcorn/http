@@ -129,7 +129,7 @@ test.method ("http.apis.GetApiSpec", "run")
             },
             {
               "spec": "[defval]",
-              "type": "any?"
+              "type": "any"
             },
             {
               "spec": "constraints...",
@@ -169,7 +169,7 @@ test.method ("http.apis.GetApiSpec", "run")
             },
             {
               "spec": "[defval]",
-              "type": "any?"
+              "type": "any"
             },
             {
               "spec": "label",
@@ -203,13 +203,13 @@ test.method ("http.apis.GetApiSpec", "run")
               "description": "The response name."
             },
             {
-              "spec": "[status]",
+              "spec": "<status>",
               "type": "integer",
               "description": "The response status code."
             },
             {
               "spec": "[message]",
-              "type": "string",
+              "type": "string?",
               "description": "The response status message."
             },
             {

@@ -182,6 +182,10 @@ test.method ("http.ApiSpec", "import")
               {
                 "spec": "opt5",
                 "type": "integer"
+              },
+              {
+                "spec": "opt6...",
+                "type": "string*"
               }
             ]
           },
@@ -321,7 +325,7 @@ test.method ("http.ApiSpec", "import")
             },
             {
               "spec": "[defval]",
-              "type": "any?"
+              "type": "any"
             },
             {
               "spec": "constraints...",
@@ -374,7 +378,7 @@ test.method ("http.ApiSpec", "import")
             },
             {
               "spec": "[defval]",
-              "type": "any?"
+              "type": "any"
             },
             {
               "spec": "label",
@@ -408,13 +412,13 @@ test.method ("http.ApiSpec", "import")
               "description": "The response name."
             },
             {
-              "spec": "[status]",
+              "spec": "<status>",
               "type": "integer",
               "description": "The response status code."
             },
             {
               "spec": "[message]",
-              "type": "string",
+              "type": "string?",
               "description": "The response status message."
             },
             {

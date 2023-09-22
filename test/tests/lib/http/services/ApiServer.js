@@ -8,7 +8,8 @@ test.method ("http.services.ApiServer", "init")
         {
             s.createArgs =
             {
-                excludes: "myapp.apis.Hello"
+                excludes: "myapp.apis.Hello",
+                includes: ["myapp.*", "http.*"]
             };
         })
         .expectingPropertyToBe ("result.handlers.length", 2)
@@ -31,6 +32,13 @@ test.method ("http.services.ApiServer", "init")
 test.method ("http.services.ApiServer", "dispatch")
     .should ("return the API spec if the path is the API root")
         .project ("myapp")
+        .up (s =>
+        {
+            s.createArgs =
+            {
+                includes: ["myapp.*", "http.*"]
+            };
+        })
         .given (Context.new ("GET", "/api"))
         .before (async (s) =>
         {
@@ -62,7 +70,10 @@ test.method ("http.services.ApiServer", "dispatch")
                       "source": "form"
                     }
                   ]
-                }
+                },
+                "responses": [
+                  "ValidationFailed"
+                ]
               },
               {
                 "name": "GetApiSpec",
@@ -152,6 +163,10 @@ test.method ("http.services.ApiServer", "dispatch")
                     {
                       "spec": "opt5",
                       "type": "integer"
+                    },
+                    {
+                      "spec": "opt6...",
+                      "type": "string*"
                     }
                   ]
                 },
@@ -291,7 +306,7 @@ test.method ("http.services.ApiServer", "dispatch")
                   },
                   {
                     "spec": "[defval]",
-                    "type": "any?"
+                    "type": "any"
                   },
                   {
                     "spec": "constraints...",
@@ -344,7 +359,7 @@ test.method ("http.services.ApiServer", "dispatch")
                   },
                   {
                     "spec": "[defval]",
-                    "type": "any?"
+                    "type": "any"
                   },
                   {
                     "spec": "label",
@@ -378,13 +393,13 @@ test.method ("http.services.ApiServer", "dispatch")
                     "description": "The response name."
                   },
                   {
-                    "spec": "[status]",
+                    "spec": "<status>",
                     "type": "integer",
                     "description": "The response status code."
                   },
                   {
                     "spec": "[message]",
-                    "type": "string",
+                    "type": "string?",
                     "description": "The response status message."
                   },
                   {

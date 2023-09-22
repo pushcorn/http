@@ -32,6 +32,7 @@ test.method ("http.HandlerService", "init")
             .forHandler ("http.Api"))
         .up (s => s.createArgs =
         {
+            includes: ["http.*", "myapp.*"],
             excludes: "*.Hello"
         })
         .project ("myapp")
