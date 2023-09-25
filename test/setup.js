@@ -3,6 +3,7 @@ nit.test.Strategy
     .memo ("Xhr", () => nit.require ("http.Xhr"))
     .memo ("XmlHttpRequest", () => nit.require ("http.mocks.XmlHttpRequest"))
     .memo ("Context", () => nit.require ("http.Context"))
+    .memo ("Server", () => nit.require ("http.Server"))
     .memo ("Service", () => nit.require ("http.Service"))
     .memo ("Api", () => nit.require ("http.Api"))
     .memo ("ApiSpec", () => nit.require ("http.ApiSpec"))
@@ -43,7 +44,7 @@ nit.test.Strategy
     })
     .method ("createService", function ()
     {
-        return this.http.Service.Descriptor.build (...arguments);
+        return this.Service.Descriptor.build (...arguments);
     })
     .method ("useApi", function (descriptor)
     {

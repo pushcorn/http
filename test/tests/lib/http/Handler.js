@@ -41,6 +41,34 @@ test.method ("http.Handler.Descriptor", "build")
 ;
 
 
+test.method ("http.Handler", "preInit")
+    .should ("initialize the service property")
+        .up (s => s.args = s.Service.Descriptor.build ())
+        .expectingPropertyToBeOfType ("object.service", "http.Service")
+        .commit ()
+;
+
+
+test.method ("http.Handler", "postInit")
+    .should ("invoke the postInit hook")
+        .up (s => s.args = s.Service.Descriptor.build ())
+        .mock ("class", "http.Handler.postInit")
+        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
+        .expectingPropertyToBeOfType ("mocks.0.invocations.0.args.0", "http.Service")
+        .commit ()
+;
+
+
+test.method ("http.Handler", "init")
+    .should ("invoke the init hook")
+        .up (s => s.args = s.Service.Descriptor.build ())
+        .mock ("class", "http.Handler.init")
+        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
+        .expectingPropertyToBeOfType ("mocks.0.invocations.0.args.0", "http.Service")
+        .commit ()
+;
+
+
 test.method ("http.Handler", "run")
     .should ("run the handler")
         .up (s => s.http.defineHandlerPlugin ("TestPlugin")

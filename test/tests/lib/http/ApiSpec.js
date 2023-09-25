@@ -92,7 +92,10 @@ test.method ("http.ApiSpec", "import")
                 "source": "form"
               }
             ]
-          }
+          },
+          "responses": [
+            "CheckInRecorded"
+          ]
         },
         {
           "name": "GetApiSpec",
@@ -206,6 +209,11 @@ test.method ("http.ApiSpec", "import")
               "type": "ApiSpec"
             }
           ]
+        },
+        {
+          "name": "CheckInRecorded",
+          "status": 201,
+          "message": "The check-in info has been recorded."
         },
         {
           "name": "HelloMessageReturned",

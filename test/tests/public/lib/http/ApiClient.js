@@ -28,7 +28,7 @@ test.method ("http.ApiClient", "importFromUrl", true)
         s.helloResult = await s.result.shared.hello ("John Doe", { opt3: "user@p.com" });
     })
     .returnsInstanceOf (Function)
-    .expecting ("3 APIs were defined", 3, s => nit.keys (s.result.apis).length)
+    .expecting ("4 APIs were defined", 4, s => nit.keys (s.result.apis).length)
     .expectingPropertyToBe ("result.apis.CheckIn",
     {
         "description": "Check-in your location.",
@@ -68,8 +68,8 @@ test.method ("http.ApiClient", "import", true)
             .meta ("baseUrl", s.baseUrl)
         ;
 
-        result.spec.apis[2].request.parameters[3].constraints[0].type = "test:unique"; // simulate the server-side constraint to be created by the client
-        result.spec.apis[2].request.parameters[4].constraints[0].type = "email";
+        result.spec.apis[3].request.parameters[3].constraints[0].type = "test:unique"; // simulate the server-side constraint to be created by the client
+        result.spec.apis[3].request.parameters[4].constraints[0].type = "email";
 
         s.args = nit.new ("http.ApiSpec", result.spec);
     })
@@ -78,7 +78,7 @@ test.method ("http.ApiClient", "import", true)
         s.helloResult = await s.result.shared.hello ("Jane Doe", { opt2: "unique value" });
     })
     .returnsInstanceOf (Function)
-    .expecting ("3 APIs were defined", 3, s => nit.keys (s.result.apis).length)
+    .expecting ("4 APIs were defined", 4, s => nit.keys (s.result.apis).length)
     .expectingPropertyToBe ("result.apis.CheckIn",
     {
         "description": "Check-in your location.",

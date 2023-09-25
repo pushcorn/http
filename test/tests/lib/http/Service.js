@@ -135,23 +135,34 @@ test.method (newServiceClass (), "dispatch")
 
 test.method (newServiceClass (), "init")
     .should ("init the service")
-    .before (function ()
+    .before (s =>
     {
-        const Plugin = http.defineServicePlugin ("Plugin", true)
-            .onPreInit (() => this.preInit = true)
-            .onPostInit (() => this.postInit = true)
+        const Api1 = http.defineApi ("Api1", true)
+            .condition ("http:request-path", "/one")
+            .onInit (() =>
+            {
+                s.apiInitCalled = true;
+            })
         ;
 
-        this.class
-            .serviceplugin (new Plugin)
-            .onInit (() => this.initCalled = true)
+        const Plugin = http.defineServicePlugin ("Plugin", true)
+            .onPreInit (() => s.preInit = true)
+            .onPostInit (() => s.postInit = true)
         ;
+
+        s.class
+            .serviceplugin (new Plugin)
+            .onInit (() => s.initCalled = true)
+        ;
+
+        s.object.handlers = [new Api1];
     })
-    .given (new http.Server ())
+    .up (s => s.args = new s.Server ())
     .returnsInstanceOf (Service)
     .expectingPropertyToBe ("preInit", true)
     .expectingPropertyToBe ("postInit", true)
     .expectingPropertyToBe ("initCalled", true)
+    .expectingPropertyToBe ("apiInitCalled", true)
     .commit ()
 ;
 

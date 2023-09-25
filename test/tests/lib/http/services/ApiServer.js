@@ -12,7 +12,7 @@ test.method ("http.services.ApiServer", "init")
                 includes: ["myapp.*", "http.*"]
             };
         })
-        .expectingPropertyToBe ("result.handlers.length", 2)
+        .expectingPropertyToBe ("result.handlers.length", 3)
         .commit ()
 
     .should ("include only the specified apis")
@@ -72,6 +72,7 @@ test.method ("http.services.ApiServer", "dispatch")
                   ]
                 },
                 "responses": [
+                  "CheckInRecorded",
                   "ValidationFailed"
                 ]
               },
@@ -82,6 +83,25 @@ test.method ("http.services.ApiServer", "dispatch")
                 "description": "Get the API specification.",
                 "responses": [
                   "ApiSpecReturned"
+                ]
+              },
+              {
+                "name": "GetBlob",
+                "method": "POST",
+                "path": "/blobs",
+                "description": "Get the blob!",
+                "request": {
+                  "parameters": [
+                    {
+                      "spec": "[content]",
+                      "type": "string",
+                      "description": "The blob content."
+                    }
+                  ]
+                },
+                "responses": [
+                  "BlobReturned",
+                  "ValidationFailed"
                 ]
               },
               {
@@ -187,6 +207,22 @@ test.method ("http.services.ApiServer", "dispatch")
                     "type": "ApiSpec"
                   }
                 ]
+              },
+              {
+                "name": "BlobReturned",
+                "status": 200,
+                "message": "The blob has been returned.",
+                "fields": [
+                  {
+                    "spec": "<content>",
+                    "type": "string"
+                  }
+                ]
+              },
+              {
+                "name": "CheckInRecorded",
+                "status": 201,
+                "message": "The check-in info has been recorded."
               },
               {
                 "name": "HelloMessageReturned",
