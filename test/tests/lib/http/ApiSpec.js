@@ -7,7 +7,7 @@ test.method ("http.ApiSpec.Constraint", "import", true)
         .expectingMethodToReturnValue ("result.toJson", "  ", nit.trim.text`
         {
           "type": "exclusive",
-          "code": "error.exclusive_fields_specified",
+          "code": "error.exclusive_fields",
           "message": "Exactly one of following fields must be specified: %{constraint.fields.join (', ')}. (%{specified} specified)",
           "options": {
             "fields": [
@@ -36,7 +36,7 @@ test.method ("http.ApiSpec.Constraint", "import", true)
         .expectingMethodToReturnValue ("result.toJson", "  ", nit.trim.text`
         {
           "type": "exclusive",
-          "code": "error.exclusive_fields_specified",
+          "code": "error.exclusive_fields",
           "message": "Exactly one of following fields must be specified: %{constraint.fields.join (', ')}. (%{specified} specified)",
           "name": "ex1",
           "condition": "opt1 > opt2",
