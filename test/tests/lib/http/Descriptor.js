@@ -24,7 +24,7 @@ test.method ("http.Descriptor", "build", true)
 
 test.method ("http.Descriptor", "createRuntimeClass")
     .should ("create the runtime class from the config")
-        .project ("myapp")
+        .project ("myapp", true)
         .up (s =>
         {
             s.class = s.http.Api.Descriptor;
@@ -52,7 +52,7 @@ test.method ("http.Descriptor", "createRuntimeClass")
 
 test.method ("http.Descriptor", "build")
     .should ("create an instance of described target")
-    .project ("myapp")
+    .project ("myapp", true)
     .up (s =>
     {
         s.class = s.http.Api.Descriptor;

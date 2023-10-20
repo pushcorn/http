@@ -8,10 +8,15 @@ nit.test.Strategy
     .memo ("Api", () => nit.require ("http.Api"))
     .memo ("ApiSpec", () => nit.require ("http.ApiSpec"))
     .memo ("Cookies", () => nit.require ("http.Cookies"))
+    .memo ("stream", () => require ("stream"))
 
     .method ("givenContext", function ()
     {
         return this.given (this.Context.new (...arguments));
+    })
+    .method ("bufferToStream", function (buf)
+    {
+        return this.stream.Readable.from (Buffer.from (buf));
     })
     .method ("mockXhrSend", function ()
     {

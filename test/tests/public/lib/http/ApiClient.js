@@ -3,7 +3,7 @@ nit.ns.export ();
 
 test.method ("http.ApiClient", "importFromUrl", true)
     .should ("import the spec from an URL")
-    .project ("myapp")
+    .project ("myapp", true)
     .useServer (
     {
         services:
@@ -44,7 +44,7 @@ test.method ("http.ApiClient", "importFromUrl", true)
 
 test.method ("http.ApiClient", "import", true)
     .should ("import the given spec")
-    .project ("myapp")
+    .project ("myapp", true)
     .useServer (
     {
         services:
@@ -116,7 +116,7 @@ test.method ("http.ApiClient.Model", "import", true)
 
 test.method ("http.ApiClient.Api", "send", true)
     .should ("convert the error to a response")
-        .project ("myapp")
+        .project ("myapp", true)
         .useServer ({ services: ["http:api-server"] })
         .mockXhrSend ()
         .before (async (s) =>

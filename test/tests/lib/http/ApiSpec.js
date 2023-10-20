@@ -56,7 +56,7 @@ test.method ("http.ApiSpec.Constraint", "import", true)
 
 test.method ("http.ApiSpec", "import")
     .should ("create a spec from an API")
-    .project ("myapp")
+    .project ("myapp", true)
     .before (s =>
     {
         let comp = nit.listComponents ("apis").find (c => c.className.endsWith ("Hello"));
@@ -132,7 +132,7 @@ test.method ("http.ApiSpec", "import")
                   {
                     "type": "choice",
                     "code": "error.invalid_choice",
-                    "message": "The %{property.kind} '%{property.name}' is assigned to an invalid value '%{value}'. (Allowed: %{constraint.choiceValues.join (', ')})",
+                    "message": "The %{property.kind} '%{property.name}' is assigned to an invalid value '%{value}'. (Allowed: %{constraint.choiceValues.slice (0, 10).join (', ') + (constraint.choiceValues.length > 10 ? '...' : '')})",
                     "options": {
                       "choices": [
                         "val1",
@@ -171,7 +171,7 @@ test.method ("http.ApiSpec", "import")
                   {
                     "type": "choice",
                     "code": "error.invalid_choice",
-                    "message": "The %{property.kind} '%{property.name}' is assigned to an invalid value '%{value}'. (Allowed: %{constraint.choiceValues.join (', ')})",
+                    "message": "The %{property.kind} '%{property.name}' is assigned to an invalid value '%{value}'. (Allowed: %{constraint.choiceValues.slice (0, 10).join (', ') + (constraint.choiceValues.length > 10 ? '...' : '')})",
                     "condition": "nit.is.not.empty (opt2)",
                     "options": {
                       "choices": [

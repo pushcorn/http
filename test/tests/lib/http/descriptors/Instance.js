@@ -3,7 +3,7 @@ const CERTS_DIR = nit.new ("nit.Dir", test.TEST_PROJECT_PATH).subdir ("resources
 
 test.method ("http.descriptors.Instance", "build")
     .should ("return the runtime class")
-        .project ("myapp")
+        .project ("myapp", true)
         .up (s =>
         {
             s.class = s.http.Api.Descriptor;
@@ -14,7 +14,7 @@ test.method ("http.descriptors.Instance", "build")
         .commit ()
 
     .should ("copy descriptor fields to options if fieldsAsOptions is true")
-        .project ("myapp")
+        .project ("myapp", true)
         .up (s =>
         {
             s.class = s.http.Certificate.Descriptor;

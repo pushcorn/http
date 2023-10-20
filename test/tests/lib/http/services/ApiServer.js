@@ -3,7 +3,7 @@ const Context = nit.require ("http.Context");
 
 test.method ("http.services.ApiServer", "init")
     .should ("exclude the specified apis")
-        .project ("myapp")
+        .project ("myapp", true)
         .up (s =>
         {
             s.createArgs =
@@ -16,7 +16,7 @@ test.method ("http.services.ApiServer", "init")
         .commit ()
 
     .should ("include only the specified apis")
-        .project ("myapp")
+        .project ("myapp", true)
         .up (s =>
         {
             s.createArgs =
@@ -31,7 +31,7 @@ test.method ("http.services.ApiServer", "init")
 
 test.method ("http.services.ApiServer", "dispatch")
     .should ("return the API spec if the path is the API root")
-        .project ("myapp")
+        .project ("myapp", true)
         .up (s =>
         {
             s.createArgs =
@@ -95,7 +95,7 @@ test.method ("http.services.ApiServer", "dispatch")
                     {
                       "spec": "[content]",
                       "type": "string",
-                      "description": "The blob content."
+                      "description": "The blob content in Base64."
                     }
                   ]
                 },
@@ -130,7 +130,7 @@ test.method ("http.services.ApiServer", "dispatch")
                         {
                           "type": "choice",
                           "code": "error.invalid_choice",
-                          "message": "The %{property.kind} '%{property.name}' is assigned to an invalid value '%{value}'. (Allowed: %{constraint.choiceValues.join (', ')})",
+                          "message": "The %{property.kind} '%{property.name}' is assigned to an invalid value '%{value}'. (Allowed: %{constraint.choiceValues.slice (0, 10).join (', ') + (constraint.choiceValues.length > 10 ? '...' : '')})",
                           "options": {
                             "choices": [
                               "val1",
@@ -169,7 +169,7 @@ test.method ("http.services.ApiServer", "dispatch")
                         {
                           "type": "choice",
                           "code": "error.invalid_choice",
-                          "message": "The %{property.kind} '%{property.name}' is assigned to an invalid value '%{value}'. (Allowed: %{constraint.choiceValues.join (', ')})",
+                          "message": "The %{property.kind} '%{property.name}' is assigned to an invalid value '%{value}'. (Allowed: %{constraint.choiceValues.slice (0, 10).join (', ') + (constraint.choiceValues.length > 10 ? '...' : '')})",
                           "condition": "nit.is.not.empty (opt2)",
                           "options": {
                             "choices": [
@@ -215,7 +215,7 @@ test.method ("http.services.ApiServer", "dispatch")
                 "fields": [
                   {
                     "spec": "<content>",
-                    "type": "string"
+                    "type": "any"
                   }
                 ]
               },
@@ -482,7 +482,7 @@ test.method ("http.services.ApiServer", "dispatch")
         .commit ()
 
     .should ("dispatch the request to the target API")
-        .project ("myapp")
+        .project ("myapp", true)
         .before (async (s) =>
         {
             await s.object.init ();
@@ -497,7 +497,7 @@ test.method ("http.services.ApiServer", "dispatch")
         .commit ()
 
     .reset ()
-        .project ("myapp")
+        .project ("myapp", true)
         .before (async (s) =>
         {
             await s.object.init ();

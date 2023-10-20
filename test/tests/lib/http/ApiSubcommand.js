@@ -1,0 +1,16 @@
+test.method ("http.ApiSubcommand", "buildSubcommand", true)
+    .should ("build the subcommand for the given API")
+        .project ("myapp", true)
+        .before (s => s.args = ["myapp.apisubcommands.Hello", new nit.ComponentDescriptor ("myapp.apis.Hello", "apis")])
+        .expectingPropertyToBe ("result.Input.fields.length", 8)
+        .expectingPropertyToBe ("result.Input.fieldMap.name.required", false)
+        .expectingPropertyToBe ("result.Input.fieldMap.opt1.constraints.length", 0)
+        .commit ()
+
+    .should ("not remove the parameter constraints in completion mode")
+        .project ("myapp", true)
+        .up (() => nit.dpv (nit, "COMPLETION_MODE", true, true))
+        .before (s => s.args = ["myapp.apisubcommands.Hello", new nit.ComponentDescriptor ("myapp.apis.Hello", "apis")])
+        .expectingPropertyToBe ("result.Input.fieldMap.opt1.constraints.length", 1)
+        .commit ()
+;

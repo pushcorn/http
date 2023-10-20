@@ -6,7 +6,7 @@ module.exports = function (nit, http)
         .defineRequest (Request =>
         {
             Request
-                .parameter ("[content]", "string", "The blob content.")
+                .parameter ("[content]", "string", "The blob content in Base64.")
             ;
         })
         .response ("myapp:BlobReturned")
@@ -15,7 +15,7 @@ module.exports = function (nit, http)
         {
             let { content } = ctx.request;
 
-            ctx.respond (content);
+            ctx.respond (Buffer.from (content, "base64"));
         })
     ;
 };

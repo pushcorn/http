@@ -20,7 +20,7 @@ test.method ("http.HandlerService", "init")
         {
             includes: "*.Hello"
         })
-        .project ("myapp")
+        .project ("myapp", true)
         .returnsInstanceOf ("test.services.MyService")
         .expectingPropertyToBe ("result.handlers.length", 1)
         .expectingPropertyToBeOfType ("result.handlers.0", "myapp.apis.Hello")
@@ -35,7 +35,7 @@ test.method ("http.HandlerService", "init")
             includes: ["http.*", "myapp.*"],
             excludes: "*.Hello"
         })
-        .project ("myapp")
+        .project ("myapp", true)
         .returnsInstanceOf ("test.services.MyService")
         .expectingPropertyToBe ("result.handlers.length", 3)
         .expectingPropertyToBeOfType ("result.handlers.0", "myapp.apis.CheckIn")
