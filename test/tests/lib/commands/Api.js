@@ -10,7 +10,6 @@ test.subcommand ("commands.Api", "myapp:hello")
     .mock ("server", "info")
     .mock (process.stderr, "write")
     .mock (process.stdout, "write", { iterations: 1 })
-    .up (s => s.proj.begin ())
     .given ("John Doe", "Mr.")
     .init (async (s) =>
     {
@@ -74,7 +73,6 @@ test.subcommand ("commands.Api", "myapp:get-blob")
     .mock ("server", "info")
     .mock (process.stderr, "write")
     .mock (process.stdout, "write", { iterations: 1 })
-    .up (s => s.proj.begin ())
     .given (IMG_BASE64)
     .init (async (s) =>
     {
@@ -106,7 +104,6 @@ test.subcommand ("commands.Api", "myapp:check-in")
     .mock ("server", "info")
     .mock (process.stderr, "write")
     .mock (process.stdout, "write", { iterations: 1 })
-    .up (s => s.proj.begin ())
     .given (1234, "--location", nit.toJson ({ latitude: 33, longitude: 44 }))
     .init (async (s) =>
     {
@@ -138,7 +135,6 @@ test.subcommand ("commands.Api", "myapp:check-in")
     .mock ("server", "info")
     .mock (process.stderr, "write")
     .mock (process.stdout, "write", { iterations: 1 })
-    .up (s => s.proj.begin ())
     .given (1234, "--location", nit.toJson ({ latitude: 33, longitude: 44 }))
     .init (async (s) =>
     {
