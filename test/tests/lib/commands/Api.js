@@ -11,6 +11,7 @@ test.subcommand ("commands.Api", "myapp:hello")
     .mock (process.stderr, "write")
     .mock (process.stdout, "write", { iterations: 1 })
     .up (s => s.proj.begin ())
+    .given ("John Doe", "Mr.")
     .init (async (s) =>
     {
         s.server = s.createServer (
@@ -22,13 +23,13 @@ test.subcommand ("commands.Api", "myapp:hello")
     {
         await s.server.start ();
 
-        s.args = ["--port", s.server.realPort, "myapp:hello", "John Doe", "Mr."];
+        s.commandArgs = ["--port", s.server.realPort];
     })
     .after (async (s) =>
     {
         process.stdout.isTTY = false;
 
-        await s.testUp (s.args);
+        await s.testUp (...s.args);
 
         s.helloResult2 = await s.test ();
 
@@ -44,7 +45,7 @@ test.subcommand ("commands.Api", "myapp:hello")
             };
         });
 
-        await s.testUp ("--port", s.server.realPort, "myapp:hello", "John Doe", "Mr.", "--opt1", "val3");
+        await s.testUp (...s.args, "--opt1", "val3");
 
         s.helloResult3 = await s.test ();
         s.exitCode3 = process.exitCode;
@@ -74,6 +75,7 @@ test.subcommand ("commands.Api", "myapp:get-blob")
     .mock (process.stderr, "write")
     .mock (process.stdout, "write", { iterations: 1 })
     .up (s => s.proj.begin ())
+    .given (IMG_BASE64)
     .init (async (s) =>
     {
         s.server = s.createServer (
@@ -85,7 +87,7 @@ test.subcommand ("commands.Api", "myapp:get-blob")
     {
         await s.server.start ();
 
-        s.args = ["--port", s.server.realPort, "myapp:get-blob", IMG_BASE64];
+        s.commandArgs = ["--port", s.server.realPort];
     })
     .deinit (async (s) =>
     {
@@ -105,6 +107,7 @@ test.subcommand ("commands.Api", "myapp:check-in")
     .mock (process.stderr, "write")
     .mock (process.stdout, "write", { iterations: 1 })
     .up (s => s.proj.begin ())
+    .given (1234, "--location", nit.toJson ({ latitude: 33, longitude: 44 }))
     .init (async (s) =>
     {
         s.server = s.createServer (
@@ -116,7 +119,7 @@ test.subcommand ("commands.Api", "myapp:check-in")
     {
         await s.server.start ();
 
-        s.args = ["--port", s.server.realPort, "myapp:check-in", 1234, "--location", nit.toJson ({ latitude: 33, longitude: 44 })];
+        s.commandArgs = ["--port", s.server.realPort];
     })
     .deinit (async (s) =>
     {
@@ -136,6 +139,7 @@ test.subcommand ("commands.Api", "myapp:check-in")
     .mock (process.stderr, "write")
     .mock (process.stdout, "write", { iterations: 1 })
     .up (s => s.proj.begin ())
+    .given (1234, "--location", nit.toJson ({ latitude: 33, longitude: 44 }))
     .init (async (s) =>
     {
         s.server = s.createServer (
@@ -153,15 +157,13 @@ test.subcommand ("commands.Api", "myapp:check-in")
     {
         await s.server.start ();
 
-        s.args =
+        s.commandArgs =
         [
             "--port", s.server.realPort,
             "-u", "https://127.0.0.1",
             "-h", "app.pushcorn.com",
             "--insecure",
-            "--silent",
-            "myapp:check-in", 1234,
-            "--location", nit.toJson ({ latitude: 33, longitude: 44 })
+            "--silent"
         ];
     })
     .after (async (s) =>
@@ -183,15 +185,15 @@ test.subcommand ("commands.Api", "myapp:check-in")
             });
         });
 
-
-        await s.testUp (
+        s.commandArgs =
+        [
             "--port", s.server.realPort,
             "-u", "https://127.0.0.1",
             "-h", "app.pushcorn.com",
-            "--insecure",
-            "myapp:check-in", 1234,
-            "--location", nit.toJson ({ latitude: 33, longitude: 44 })
-        );
+            "--insecure"
+        ];
+
+        await s.testUp (...s.args);
 
         s.result2 = await s.test ();
         s.apiUrl2 = args[0].replace (/:\d+/, "");
