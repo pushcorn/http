@@ -100,32 +100,71 @@ test.subcommand ("commands.Api", "myapp:get-blob")
 
 test.subcommand ("commands.Api", "myapp:check-in")
     .should ("handle the object input")
-    .project ("myapp", true)
-    .mock ("server", "info")
-    .mock (process.stderr, "write")
-    .mock (process.stdout, "write", { iterations: 1 })
-    .given (1234, "--location", nit.toJson ({ latitude: 33, longitude: 44 }))
-    .init (async (s) =>
-    {
-        s.server = s.createServer (
+        .project ("myapp", true)
+        .mock ("server", "info")
+        .mock (process.stderr, "write")
+        .mock (process.stdout, "write", { iterations: 1 })
+        .given (1234, "--location", nit.toJson ({ latitude: 33, longitude: 44 }))
+        .init (async (s) =>
         {
-            services: "http:api-server"
-        });
-    })
-    .up (async (s) =>
-    {
-        await s.server.start ();
+            s.server = s.createServer (
+            {
+                services: "http:api-server"
+            });
+        })
+        .up (async (s) =>
+        {
+            await s.server.start ();
 
-        s.commandArgs = ["--port", s.server.realPort];
-    })
-    .deinit (async (s) =>
-    {
-        await nit.sleep (10);
-        await s.server.stop ();
-    })
-    .returns ("")
-    .expectingPropertyToBe ("mocks.1.invocations.0.args.0", /201/)
-    .commit ()
+            s.commandArgs = ["--port", s.server.realPort];
+        })
+        .deinit (async (s) =>
+        {
+            await nit.sleep (10);
+            await s.server.stop ();
+        })
+        .returns ("")
+        .expectingPropertyToBe ("mocks.1.invocations.0.args.0", /201/)
+        .commit ()
+
+    .should ("just ignore the required param can invoke the api")
+        .project ("myapp", true)
+        .mock ("server", "info")
+        .mock (process.stderr, "write")
+        .mock (process.stdout, "write", { iterations: 1 })
+        .given ("--location", nit.toJson ({ latitude: 33, longitude: 44 }))
+        .init (async (s) =>
+        {
+            s.server = s.createServer (
+            {
+                services: "http:api-server"
+            });
+        })
+        .up (async (s) =>
+        {
+            await s.server.start ();
+
+            s.commandArgs = ["--port", s.server.realPort];
+        })
+        .deinit (async (s) =>
+        {
+            await nit.sleep (10);
+            await s.server.stop ();
+        })
+        .returns (Colorizer.gray (nit.trim.text (`
+        {
+          "violations": [
+            {
+              "field": "userId",
+              "constraint": "",
+              "code": "error.value_required",
+              "message": "The parameter 'userId' is required."
+            }
+          ]
+        }
+        `)))
+        .expectingPropertyToBe ("mocks.1.invocations.0.args.0", /400.*one or more/i)
+        .commit ()
 ;
 
 

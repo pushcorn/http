@@ -3,7 +3,6 @@ test.method ("http.ApiSubcommand", "buildSubcommand", true)
         .project ("myapp", true)
         .before (s => s.args = ["myapp.apisubcommands.Hello", new nit.ComponentDescriptor ("myapp.apis.Hello", "apis")])
         .expectingPropertyToBe ("result.Input.fields.length", 8)
-        .expectingPropertyToBe ("result.Input.fieldMap.name.required", false)
         .expectingPropertyToBe ("result.Input.fieldMap.opt1.constraints.length", 0)
         .commit ()
 
