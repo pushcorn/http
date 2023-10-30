@@ -3,6 +3,8 @@ const CERTS_DIR = nit.new ("nit.Dir", test.TEST_PROJECT_PATH).subdir ("resources
 const IMG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACJSURBVEhL7ZC9CYBADEbP2iEEp7JxAPdwBZex02EcQ/0iBCzC/ZlTkDx4RYrLC+cMwzB+QQ1bRRtYwSAbPJQdoRe6bIbS41x32MEg9NULlJakStEBRqMRT44yFF+htDRkdpTJiT+OMilxtSgTE1ePMr54sSgjxYtHmXv8tShD8Qn212QYxnc4dwKskJKEHrOFUQAAAABJRU5ErkJggg==";
 const IMG = Buffer.from (IMG_BASE64, "base64");
 
+nit.require ("nit.Command");
+
 
 test.subcommand ("commands.Api", "myapp:hello")
     .should ("invoke the specified API")
@@ -243,3 +245,23 @@ test.subcommand ("commands.Api", "myapp:check-in")
     .expectingPropertyToBe ("apiUrl2", "https://127.0.0.1/check-ins")
     .commit ()
 ;
+
+
+test.method ("commands.Api.ApiSubcommand", "buildSubcommand", true)
+    .should ("build the subcommand for the given API")
+        .project ("myapp", true)
+        .before (s => s.args = ["myapp.apisubcommands.Hello", new nit.ComponentDescriptor ("myapp.apis.Hello", "apis")])
+        .expectingPropertyToBe ("result.Input.fields.length", 8)
+        .expectingPropertyToBe ("result.Input.fieldMap.opt1.constraints.length", 0)
+        .commit ()
+
+    .should ("not remove the parameter constraints in completion mode")
+        .project ("myapp", true)
+        .up (() => nit.dpv (nit, "COMPLETION_MODE", true, true))
+        .before (s => s.args = ["myapp.apisubcommands.Hello", new nit.ComponentDescriptor ("myapp.apis.Hello", "apis")])
+        .expectingPropertyToBe ("result.Input.fieldMap.opt1.constraints.length", 1)
+        .commit ()
+;
+
+
+
