@@ -16,7 +16,6 @@ function newService (initSocketServer)
 
     service.server = new http.Server;
     service.server.nodeServer = no_http.createServer ();
-    service.contextClass = nit.defineClass ("ServiceContext", "http.Context");
 
     if (initSocketServer !== false)
     {

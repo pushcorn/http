@@ -436,7 +436,7 @@ test.method ("http.Context", "sendFile",
     })
     .should ("send the specified file")
     .given (nit.path.join (test.TEST_PROJECT_PATH, "../package.json"))
-    .after (async (s) => await s.object.writeResponse ())
+    .after (s => s.object.writeResponse ())
     .expectingPropertyToBeOfType ("object.response", "http.responses.File")
     .expectingPropertyToBe ("object.responseHeaders.Content-Type", "application/json")
     .commit ()
@@ -456,8 +456,8 @@ test.method ("http.Context", "render",
     {
         assetResolvers: { roots: "resources/html" }
     }))
-    .given ("hello.html", { firstname: "John" })
-    .after (async (s) => await s.object.writeResponse ())
+    .given ("file://hello.html", { firstname: "John" })
+    .after (s => s.object.writeResponse ())
     .expectingPropertyToBeOfType ("object.response", "http.responses.View")
     .expectingPropertyToBe ("object.responseHeaders.Content-Type", "text/html")
     .expectingPropertyToBe ("object.responseBody", "Hello John!\n")

@@ -213,7 +213,9 @@ test.subcommand ("commands.Api", "myapp:check-in")
 
             return nit.assign (s.bufferToStream ("NOT_OK"),
             {
+                isText: true,
                 statusCode: 400,
+                text: function () { return nit.readStream (this); },
                 headers:
                 {
                     "content-length": 6,

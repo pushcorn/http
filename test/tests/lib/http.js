@@ -37,6 +37,8 @@ test.object ("http.IncomingMessage")
         .expectingPropertyToBe ("result.realIp", "127.0.0.1")
         .expectingPropertyToBe ("result.userAgent", "nit")
         .expectingPropertyToBe ("result.contentType", "application/json")
+        .expectingPropertyToBe ("result.isText", true)
+        .expectingPropertyToBe ("result.isJson", true)
         .commit ()
 
     .should ("use return the value of x-forwarded-for for realIp if available")
@@ -289,8 +291,8 @@ test.method (http, "fetchText", true)
 ;
 
 
-test.method (http, "fetchData", true)
-    .should ("fetch binary content from the server")
+test.method (http, "fetchBuffer", true)
+    .should ("fetch the result as a buffer from the server")
         .up (() =>
         {
             http.defineService ("test.services.Hello")
@@ -304,6 +306,24 @@ test.method (http, "fetchData", true)
         .before (s => s.args = s.baseUrl)
         .returnsInstanceOf (Buffer)
         .expectingMethodToReturnValue ("result.toString", "utf8", /^-+BEGIN CERT/)
+        .commit ()
+;
+
+
+test.method (http, "fetchBinary", true)
+    .should ("fetch the content as a binary string")
+        .up (() =>
+        {
+            http.defineService ("test.services.Hello")
+                .onDispatch (ctx =>
+                {
+                    ctx.send ("http:file", CERTS_DIR.join ("pushcorn.com.crt"));
+                })
+            ;
+        })
+        .useServer ({ services: "test:hello" })
+        .before (s => s.args = s.baseUrl)
+        .returns (/^-+BEGIN CERT/)
         .commit ()
 ;
 

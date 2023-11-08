@@ -334,15 +334,14 @@ test.method ("http.Server", "start")
         .mock ("object", "info")
         .mock ("object", "warn")
         .mock (process, "exit")
-        .after (async function ()
+        .after (async (s) =>
         {
-            let server = this.result;
-
+            let server = s.result;
             let port = server.realPort;
             let res = await no_http_get (`http://127.0.0.1:${port}/`);
 
-            this.socket = nit.values (server.sockets)[0];
-            this.responseContent = await nit.readStream (res);
+            s.socket = nit.values (server.sockets)[0];
+            s.responseContent = await nit.readStream (res);
 
             await server.stop ();
             await nit.sleep (20);

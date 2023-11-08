@@ -8,7 +8,7 @@ test.method ("http.responses.View", "hash", true)
 
 test.method ("http.responses.View", "toBody")
     .should ("throw if the template file was not found")
-        .up (s => s.createArgs = "page-one.html")
+        .up (s => s.createArgs = "file://page-one.html")
         .before (s => s.args = s.http.Context.new ())
         .throws ("error.template_not_found")
         .commit ()
@@ -16,7 +16,7 @@ test.method ("http.responses.View", "toBody")
     .should ("render the template with the given data")
         .up (s =>
         {
-            s.createArgs = "page-one.html";
+            s.createArgs = "file://page-one.html";
             s.args = nit.assign (s.http.Context.new (),
             {
                 service: s.createService (
@@ -35,7 +35,7 @@ test.method ("http.responses.View", "toBody")
     .should ("use the given content type")
         .up (s =>
         {
-            s.createArgs = { template: "page-one.html", contentType: "text/csv" };
+            s.createArgs = { template: "file://page-one.html", contentType: "text/csv" };
             s.args = nit.assign (s.http.Context.new (),
             {
                 service: s.createService (
@@ -106,7 +106,7 @@ test.method ("http.responses.View", "toBody")
     .should ("return the template and data in JSON if the client accepts only application/vnd.nit.template+json")
         .up (s =>
         {
-            s.createArgs = ["page-one.html", nit.o ({ a: 1 })];
+            s.createArgs = ["file://page-one.html", nit.o ({ a: 1 })];
             s.args = s.ctx = nit.assign (s.http.Context.new (),
             {
                 service: s.createService (
