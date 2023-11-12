@@ -83,7 +83,7 @@ test.method (defineApi (), "postRun")
 ;
 
 
-test.method (defineApi (), "postCatch")
+test.method (defineApi (), "preCatch")
     .should ("send the ValidationFailed response if the error code is error.model_validation_failed")
         .given (Context.new ("GET", "/"))
         .before (s =>
