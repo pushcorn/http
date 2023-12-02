@@ -81,19 +81,14 @@ test.method ("http.Order", "applyOrders", true)
 ;
 
 
-test.method ("http.Order", "onRegisterPlugin", true)
-    .should ("add the static methods orderBefore and orderAfter to the host class")
-        .given (nit.defineClass ("A", true))
-        .after (function ()
-        {
-            this.args[0].registerPlugin ("http.Order");
-        })
-        .returns ()
-        .expectingPropertyToBeOfType ("args.0.orderBefore", "function")
-        .expectingPropertyToBeOfType ("args.0.orderAfter", "function")
-        .expectingMethodToReturnValueOfType ("args.0.orderBefore", "B", "function")
-        .expectingMethodToReturnValueOfType ("args.0.orderAfter", "C", "function")
-        .expectingMethodToReturnValue ("args.0.orders.0.toPojo", null, { before: "A", after: "B" })
-        .expectingMethodToReturnValue ("args.0.orders.1.toPojo", null, { before: "C", after: "A" })
+test.plugin ("http.Order", "orderBefore", true, { registerPlugin: true, pluginArgs: ["B", "A"] })
+    .should ("add the specified orders")
+        .given ("B")
+        .before (s => s.hostClass.id = "jo")
+        .after (s => s.hostClass.orderAfter ("C"))
+        .returnsProperty ("hostClass")
+        .expectingPropertyToBe ("hostClass.orders.length", 2)
+        .expectingPropertyToBe ("hostClass.orders.0.before", "test.PluginHost")
+        .expectingPropertyToBe ("hostClass.orders.1.before", "test.C")
         .commit ()
 ;
