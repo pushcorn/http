@@ -86,7 +86,7 @@ test.plugin ("http.Order", "orderBefore", true, { registerPlugin: true, pluginAr
         .given ("B")
         .before (s => s.hostClass.id = "jo")
         .after (s => s.hostClass.orderAfter ("C"))
-        .returnsProperty ("hostClass")
+        .returnsResultOfExpr ("hostClass")
         .expectingPropertyToBe ("hostClass.orders.length", 2)
         .expectingPropertyToBe ("hostClass.orders.0.before", "test.PluginHost")
         .expectingPropertyToBe ("hostClass.orders.1.before", "test.C")

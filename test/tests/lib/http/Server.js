@@ -170,7 +170,7 @@ test.method ("http.Server", "stop")
         .mock (process, "exit")
         .before (s => s.object.start ())
         .after (() => nit.sleep (50))
-        .returnsProperty ("object")
+        .returnsResultOfExpr ("object")
         .expectingPropertyToBeOfType ("object.sockets.1234", "http.mocks.Socket")
         .expectingPropertyToBe ("mocks.0.invocations.length", 1)
         .expectingPropertyToBe ("mocks.1.invocations.length", 3)
@@ -362,7 +362,7 @@ test.method ("http.Server", "start")
         .mock (process, "exit")
         .after (s => { s.object.stop (); })
         .after (() => nit.sleep (50))
-        .returnsProperty ("object")
+        .returnsResultOfExpr ("object")
         .expectingPropertyToBe ("mocks.2.invocations.length", 1)
         .expectingPropertyToBe ("hostCalled", ["preStart", "start", "postStart"])
         .commit ()
@@ -379,7 +379,7 @@ test.method ("http.Server", "start")
             }
         })
         .mock ("object", "info")
-        .returnsProperty ("object")
+        .returnsResultOfExpr ("object")
         .after (async (s) =>
         {
             let error = nit.assign (new Error ("address in use"), { code: "EADDRINUSE" });
@@ -409,7 +409,7 @@ test.method ("http.Server", "start")
             }
         })
         .mock ("object", "info")
-        .returnsProperty ("object")
+        .returnsResultOfExpr ("object")
         .after (async (s) =>
         {
             let error = nit.assign (new Error ("we are in trouble"), { code: "TROUBLE" });
@@ -464,7 +464,7 @@ test.method ("http.Server", "start")
 
             await s.object.stop ();
         })
-        .returnsProperty ("object")
+        .returnsResultOfExpr ("object")
         .expectingPropertyToBe ("upgradeCalled", true)
         .expectingPropertyToBe ("socketCount", 1)
         .expectingPropertyToBe ("mocks.2.invocations.length", 1)
