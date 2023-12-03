@@ -1,109 +1,3 @@
-test.method ("http.Handler.Descriptor", "build")
-    .should ("return a handler")
-        .up (s => s.http.defineHandlerPlugin ("TestPlugin"))
-        .up (s => s.createArgs =
-        {
-            endpoint: "GET /users",
-            conditions:
-            {
-                name: "http:hostname",
-                options: "app.pushcorn.com"
-            },
-            plugins: "http:test-plugin",
-            requestFilters: "http:json-body-parser",
-            responseFilters: "http:body-compressor"
-        })
-        .returnsInstanceOf ("http.Handler")
-        .expectingPropertyToBeOfType ("result.constructor.conditions.0", "http.conditions.RequestMethod")
-        .expectingPropertyToBeOfType ("result.constructor.conditions.1", "http.conditions.RequestPath")
-        .expectingPropertyToBeOfType ("result.constructor.conditions.2", "http.conditions.Hostname")
-        .expectingPropertyToBe ("result.constructor.handlerplugins.length", 1)
-        .expectingPropertyToBe ("result.requestFilters.length", 1)
-        .expectingPropertyToBe ("result.responseFilters.length", 1)
-        .commit ()
-
-    .reset ()
-        .up (s => s.createArgs =
-        {
-            conditions:
-            {
-                name: "http:hostname",
-                options: "app.pushcorn.com"
-            },
-            requestFilters: "http:json-body-parser",
-            responseFilters: "http:body-compressor"
-        })
-        .returnsInstanceOf ("http.Handler")
-        .expectingPropertyToBeOfType ("result.constructor.conditions.0", "http.conditions.Hostname")
-        .expectingPropertyToBe ("result.requestFilters.length", 1)
-        .expectingPropertyToBe ("result.responseFilters.length", 1)
-        .commit ()
-;
-
-
-test.method ("http.Handler", "preInit")
-    .should ("initialize the service property")
-        .up (s => s.args = s.Service.Descriptor.build ())
-        .expectingPropertyToBeOfType ("object.service", "http.Service")
-        .commit ()
-;
-
-
-test.method ("http.Handler", "postInit")
-    .should ("invoke the postInit hook")
-        .up (s => s.args = s.Service.Descriptor.build ())
-        .mock ("class", "http.Handler.postInit")
-        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
-        .expectingPropertyToBeOfType ("mocks.0.invocations.0.args.0", "http.Service")
-        .commit ()
-;
-
-
-test.method ("http.Handler", "init")
-    .should ("invoke the init hook")
-        .up (s => s.args = s.Service.Descriptor.build ())
-        .mock ("class", "http.Handler.init")
-        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
-        .expectingPropertyToBeOfType ("mocks.0.invocations.0.args.0", "http.Service")
-        .commit ()
-;
-
-
-test.method ("http.Handler", "catch")
-    .should ("try to process the exception")
-        .up (s => s.http.defineHandlerPlugin ("TestPlugin")
-            .onPreCatch ((handler, ctx) => ctx.pluginOnPreCatchCalled = true)
-            .onPostCatch ((handler, ctx) => ctx.pluginOnPostCatchCalled = true)
-        )
-        .up (s => s.class = s.http.defineHandler ("Controller")
-            .handlerplugin ("http:test-plugin")
-            .onCatch (ctx => ctx.onCatchCalled = true)
-            .onPreCatch (ctx => ctx.onPreCatchCalled = true)
-            .onPostCatch (ctx => ctx.onPostCatchCalled = true)
-        )
-        .givenContext ()
-        .after (s => s.object.preCatch (s.args[0]))
-        .after (s => s.object.postCatch (s.args[0]))
-        .expectingPropertyToBe ("args.0.onCatchCalled", true)
-        .expectingPropertyToBe ("args.0.onPreCatchCalled", true)
-        .expectingPropertyToBe ("args.0.onPostCatchCalled", true)
-        .expectingPropertyToBe ("args.0.pluginOnPreCatchCalled", true)
-        .expectingPropertyToBe ("args.0.pluginOnPostCatchCalled", true)
-        .commit ()
-
-    .should ("rethrow the processed error")
-        .up (s => s.class = s.http.defineHandler ("Controller"))
-        .givenContext ({}, { error: new Error ("UNKNOWN") })
-        .throws ("UNKNOWN")
-        .commit ()
-
-    .should ("not throw error if it has been processed")
-        .givenContext ()
-        .returns ()
-        .commit ()
-;
-
-
 test.method ("http.Handler", "run")
     .should ("run the handler")
         .up (s => s.http.defineHandlerPlugin ("TestPlugin")
@@ -146,6 +40,26 @@ test.method ("http.Handler", "run")
         .up (s => s.args = s.class.Context.new (s.Context.new ()))
         .expectingPropertyToBe ("args.0.onRunCalled", true)
         .expectingPropertyToBe ("args.0.onCatchCalled", undefined)
+        .expectingPropertyToBe ("args.0.onFinallyCalled", true)
+        .commit ()
+
+    .should ("rethrow the error in onCatch by default")
+        .up (s => s.class = s.http.defineHandler ("Controller")
+            .onRun (() => { throw new Error ("ERR!"); })
+            .onFinally (ctx => ctx.root.onFinallyCalled = true)
+        )
+        .givenContext ()
+        .throws ("ERR!")
+        .expectingPropertyToBe ("args.0.onFinallyCalled", true)
+        .commit ()
+
+    .should ("not rethrow the error in onCatch if ctx.error has been cleared")
+        .up (s => s.class = s.http.defineHandler ("Controller")
+            .onRun (() => { throw new Error ("ERR!"); })
+            .onPreCatch (ctx => ctx.error = null)
+            .onFinally (ctx => ctx.root.onFinallyCalled = true)
+        )
+        .givenContext ()
         .expectingPropertyToBe ("args.0.onFinallyCalled", true)
         .commit ()
 
@@ -197,10 +111,66 @@ test.method ("http.Handler", "endpoint", true)
 
 
 test.object ("http.Handler", false)
-    .should ("add endpoint automatically when onRun () is defined if it was not called")
+    .should ("add endpoint automatically when onRun () is defined but endpoint () was not called")
         .project ("myapp")
         .up (s => s.class = nit.lookupClass ("myapp.apis.AutoPath"))
         .expectingPropertyToBe ("class.requestMethod", "GET")
         .expectingPropertyToBe ("class.requestPath", "/myapp/auto-path")
+        .commit ()
+;
+
+
+test.object ("http.Handler")
+    .should ("add instance level endpoint if specified")
+        .given ({ endpoint: "GET /users" })
+        .expectingPropertyToBe ("instance.requestMethod", "GET")
+        .expectingPropertyToBe ("instance.requestPath", "/users")
+        .expectingPropertyToBe ("instance.conditions.length", 2)
+        .expectingPropertyToBeOfType ("instance.conditions.0", "http.conditions.RequestMethod")
+        .expectingPropertyToBeOfType ("instance.conditions.1", "http.conditions.RequestPath")
+        .expectingMethodToReturnValue ("instance.applicableTo", { method: "GET", path: "/people" }, false)
+        .expectingMethodToReturnValue ("instance.applicableTo", { method: "GET", path: "/users" }, true)
+        .commit ()
+;
+
+
+test.method ("http.Handler", "applicableTo")
+    .should ("return true if the context satisfy the specified conditions")
+        .up (s => s.class = s.class.defineSubclass ("MyHandler")
+            .endpoint ("GET /users")
+        )
+        .given ({ method: "GET", path: "/users" })
+        .returns (true)
+        .expectingPropertyToBe ("object.requestMethod", "")
+        .expectingPropertyToBe ("class.conditions.length", 2)
+        .commit ()
+
+    .should ("return false if the context does not satisfy the specified conditions")
+        .up (s => s.class = s.class.defineSubclass ("MyHandler")
+            .endpoint ("POST", "/users")
+        )
+        .given ({ method: "POST", path: "/people" })
+        .returns (false)
+        .commit ()
+;
+
+
+test.method ("http.Handler", "endpoint", true)
+    .should ("try to figure out the method by checking the handler's prefix")
+        .up (s => s.class = s.class.defineSubclass ("CreateUser"))
+        .expectingPropertyToBe ("class.requestMethod", "POST")
+        .expectingPropertyToBe ("class.requestPath", "/users")
+        .commit ()
+
+    .reset ()
+        .up (s => s.class = s.class.defineSubclass ("UpdateUser")
+            .defineRequest (Request =>
+                Request
+                    .path ("id")
+                    .form ("firstname")
+            )
+        )
+        .expectingPropertyToBe ("class.requestMethod", "PUT")
+        .expectingPropertyToBe ("class.requestPath", "/users/:id")
         .commit ()
 ;
