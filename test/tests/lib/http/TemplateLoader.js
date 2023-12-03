@@ -1,12 +1,21 @@
-test.method ("http.TemplateLoader.Descriptor", "build", true)
-    .should ("return an instance of TemplateLoader")
-        .given (
+test.plugin ("http.TemplateLoader", "loadTemplate", { registerPlugin: true, addPlugin: "instance" })
+    .should ("load the template")
+        .init (s => s.pluginArgs =
         {
-            openTag: "%{",
-            closeTag: "}%"
+            transforms: nit.new ("http.templatetransforms.Include")
         })
-        .returnsInstanceOf ("http.TemplateLoader")
-        .expectingPropertyToBe ("result.openTag", "%{")
+        .before (s => s.args =
+        [
+            nit.path.join (test.TEST_PROJECT_PATH, "resources/html/page-one.html"),
+            s.http.Context.new (null,
+            {
+                assetResolvers: nit.new ("http.AssetResolver", { roots: "resources/html" })
+            })
+        ])
+        .returns (nit.trim.text`
+            This is page one.
+            This is page two!
+        ` + "\n\n")
         .commit ()
 ;
 
@@ -20,16 +29,11 @@ test.method ("http.TemplateLoader", "load")
         .before (s => s.args =
         [
             nit.path.join (test.TEST_PROJECT_PATH, "resources/html/page-one.html"),
-            s.http.Context.new ()
-        ])
-        .before (s => s.args[1].service = s.createService ("http:file-server",
-        {
-            assetResolvers:
+            s.http.Context.new (null,
             {
-                roots: "resources/html"
-            }
-
-        }))
+                assetResolvers: nit.new ("http.AssetResolver", { roots: "resources/html" })
+            })
+        ])
         .returns (nit.trim.text`
             This is page one.
             This is page two!
@@ -44,16 +48,11 @@ test.method ("http.TemplateLoader", "load")
         .before (s => s.args =
         [
             nit.path.join (test.TEST_PROJECT_PATH, "resources/html/page-1.html"),
-            s.http.Context.new ()
-        ])
-        .before (s => s.args[1].service = s.createService ("http:file-server",
-        {
-            assetResolvers:
+            s.http.Context.new (null,
             {
-                roots: "resources/html"
-            }
-
-        }))
+                assetResolvers: nit.new ("http.AssetResolver", { roots: "resources/html" })
+            })
+        ])
         .throws ("error.invalid_path")
         .commit ()
 
@@ -66,16 +65,11 @@ test.method ("http.TemplateLoader", "load")
         .before (s => s.args =
         [
             nit.path.join (test.TEST_PROJECT_PATH, "resources/html/page-1.html"),
-            s.http.Context.new ()
-        ])
-        .before (s => s.args[1].service = s.createService ("http:file-server",
-        {
-            assetResolvers:
+            s.http.Context.new (null,
             {
-                roots: "resources/html"
-            }
-
-        }))
+                assetResolvers: nit.new ("http.AssetResolver", { roots: "resources/html" })
+            })
+        ])
         .returns ()
         .commit ()
 
@@ -87,16 +81,11 @@ test.method ("http.TemplateLoader", "load")
         .before (s => s.args =
         [
             nit.path.join (test.TEST_PROJECT_PATH, "resources/html/page-one.html"),
-            s.http.Context.new ()
+            s.http.Context.new (null,
+            {
+                assetResolvers: nit.new ("http.AssetResolver", { roots: "resources/html" })
+            })
         ])
         .before (s => s.args[1].responseHeader ("Last-Modified", new Date ()))
-        .before (s => s.args[1].service = s.createService ("http:file-server",
-        {
-            assetResolvers:
-            {
-                roots: "resources/html"
-            }
-
-        }))
         .commit ()
 ;
