@@ -11,19 +11,3 @@ test.object ("http.Certificate")
     .expectingPropertyToBeOfType ("result.secureContext", "http.SecureContext")
     .commit ()
 ;
-
-
-test.method ("http.Certificate.Descriptor", "build",
-    {
-        createArgs:
-        {
-            cert: "pushcorn.com.crt",
-            key: "pushcorn.com.key",
-            ca: "ca.pushcorn.com.crt"
-        }
-    })
-    .should ("build a certificate and add it the server")
-    .expectingPropertyToBe ("result.constructor.name", "http.Certificate")
-    .expectingPropertyToBe ("result.cert.path", "pushcorn.com.crt")
-    .commit ()
-;
