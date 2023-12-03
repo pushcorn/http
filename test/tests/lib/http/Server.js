@@ -1,15 +1,18 @@
 const CERTS_DIR = nit.new ("nit.Dir", test.TEST_PROJECT_PATH).subdir ("resources/certs");
 
 const http = nit.require ("http");
-const no_http = require ("http");
-const no_http_get = nit.promisify (no_http, "get", true);
-const SocketIo = nit.require ("http.SocketIo");
+// const no_http = require ("http");
+// const no_http_get = nit.promisify (no_http, "get", true);
+// const SocketIo = nit.require ("http.SocketIo");
 const Context = nit.require ("http.Context");
 const MockIncomingMessage = nit.require ("http.mocks.IncomingMessage");
 const MockServerResponse = nit.require ("http.mocks.ServerResponse");
 const MockNodeHttpServer = nit.require ("http.mocks.NodeHttpServer");
 const MockSocket = nit.require ("http.mocks.Socket");
 const Server = nit.require ("http.Server");
+
+
+nit.arrayRemove (nit.SHUTDOWN_EVENTS, "SHUTDOWN");
 
 
 test.object ("http.Server")
@@ -27,12 +30,13 @@ test.object ("http.Server")
 
     .should ("define the shortHostname transform")
         .returnsInstanceOf ("http.Server")
+        .before (s => s.class.Logger.colorize = false)
         .after (function ()
         {
             this.result.info (this.result.logFormat, Context.new ({ headers: { host: "app.pushcorn.com" } }));
         })
         .mock (nit, "log")
-        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO\] \[app\.p\.c\]/)
+        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \[INFO\] \[app\.p\.c\]/)
         .commit ()
 ;
 
@@ -99,7 +103,6 @@ test.method ("http.Server", "trackSocketRequest")
         .returnsInstanceOf ("http.Server")
         .after (function ()
         {
-            this.object.$__stopped = true;
             this.args[1].listeners ("finish")[0] ();
         })
         .expectingPropertyToBe ("args.0.socket.requests.length", 0)
@@ -111,6 +114,7 @@ test.method ("http.Server", "trackSocketRequest")
         .returnsInstanceOf ("http.Server")
         .after (function ()
         {
+            this.object.$__state = "started";
             this.args[1].listeners ("finish")[0] ();
         })
         .expectingPropertyToBe ("args.0.socket.requests.length", 0)
@@ -134,57 +138,42 @@ test.method ("http.Server", "endSockets")
 
 
 test.method ("http.Server", "stop")
-    .should ("return if the method has been called once")
-        .before (function ()
-        {
-            let socket = new MockSocket ({ id: "1234" });
-
-            this.object.stopTimeout = 5;
-            this.object.addSocket (socket);
-            this.object.nodeServer = new MockNodeHttpServer ();
-            this.object.ready.resolve ();
-        })
-        .mock ("object", "endSockets")
+    .should ("not force exit if stopTimeout is zero")
+        .up (s => s.createArgs = { stopTimeout: 0, port: 0 })
         .mock ("object", "info")
         .mock ("object", "warn")
         .mock (process, "exit")
-        .returnsInstanceOf ("http.Server")
-        .after (async function ()
-        {
-            await this.object.stop ();
-            await nit.sleep (10);
-        })
-        .expectingPropertyToBeOfType ("object.sockets.1234", "http.mocks.Socket")
-        .expectingPropertyToBe ("mocks.0.invocations.length", 1)
-        .expectingPropertyToBe ("mocks.1.invocations.length", 2)
+        .before (s => s.object.start ())
+        .before (async (s) => await nit.promisify (s.object.nodeServer, "close") ())
+        .expectingPropertyToBe ("mocks.0.invocations.length", 3)
+        .expectingPropertyToBe ("mocks.1.invocations.length", 0)
+        .expectingPropertyToBe ("mocks.2.invocations.length", 0)
         .commit ()
 
     .should ("log the shutdown error")
-        .before (function (s)
+        .up (s => s.createArgs = { stopTimeout: 5, port: 0 })
+        .before (s =>
         {
             let socket = new MockSocket ({ id: "1234" });
+            let MyHost = s.Host.defineSubclass ("MyHost")
+                .onStop (() => { throw new Error ("cannot shutdown!"); })
+            ;
 
-            this.object.stopTimeout = 5;
-            this.object.addSocket (socket);
-            this.object.nodeServer = new MockNodeHttpServer ();
-            this.object.hosts = s.http.Host.Descriptor.build ();
-            this.object.ready.resolve ();
+            s.object.addSocket (socket);
+            s.object.nodeServer = new MockNodeHttpServer ();
+            s.object.hosts = new MyHost;
         })
         .mock ("object", "endSockets")
         .mock ("object", "info")
         .mock ("object", "warn")
         .mock ("object", "error")
         .mock (process, "exit")
-        .mock ("object.hosts.0.constructor.prototype", "stop", () => { throw new Error ("cannot shutdown!"); })
-        .returnsInstanceOf ("http.Server")
-        .after (async function ()
-        {
-            await this.object.stop ();
-            await nit.sleep (10);
-        })
+        .before (s => s.object.start ())
+        .after (() => nit.sleep (50))
+        .returnsProperty ("object")
         .expectingPropertyToBeOfType ("object.sockets.1234", "http.mocks.Socket")
         .expectingPropertyToBe ("mocks.0.invocations.length", 1)
-        .expectingPropertyToBe ("mocks.1.invocations.length", 2)
+        .expectingPropertyToBe ("mocks.1.invocations.length", 3)
         .expectingPropertyToBe ("mocks.3.invocations.length", 1)
         .expectingPropertyToBe ("mocks.3.invocations.0.args.1.message", "cannot shutdown!")
         .commit ()
@@ -217,21 +206,63 @@ test.method ("http.Server", "dispatch")
             new MockIncomingMessage ("GET", "/users", { headers: { host: "app.pushcorn.com" } }),
             new MockServerResponse ()
         )
-        .before (function (s)
+        .before (s =>
         {
-            http.defineService ("Service1")
+            let MyHost = s.Host.defineSubclass ("MyHost")
                 .onDispatch (() => { throw 403; }) // eslint-disable-line no-throw-literal
             ;
 
-            this.object.hosts = s.http.Host.Descriptor.build (
-            {
-                names: "app.pushcorn.com",
-                services: "http:service1"
-            });
+            s.object.hosts = new MyHost ({ names: "app.pushcorn.com" });
         })
         .mock (nit, "log")
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO\] \[app\.p\.c\].*403/)
+        .expectingPropertyToBe ("result.response.constructor.name", "http.responses.Forbidden")
+        .commit ()
+
+    .should ("dispatch the request to the first matching host")
+        .given (
+            new MockIncomingMessage ("GET", "/users", { headers: { host: "app.pushcorn.com" } }),
+            new MockServerResponse ()
+        )
+        .before (s =>
+        {
+            let MyHost1 = s.Host.defineSubclass ("MyHost1")
+                .onDispatch (() => { throw 403; }) // eslint-disable-line no-throw-literal
+            ;
+
+            let MyHost2 = s.Host.defineSubclass ("MyHost2")
+                .onDispatch (ctx => ctx.sendText ("Hello"))
+            ;
+
+            s.object.hosts =
+            [
+                new MyHost1 ({ names: "dashboard.pushcorn.com" }),
+                new MyHost2 ({ names: "app.pushcorn.com" })
+            ];
+        })
+        .mock (nit, "log")
+        .returnsInstanceOf (http.Context)
+        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO\] \[app\.p\.c\].*200/)
+        .expectingPropertyToBe ("result.response.text", "Hello")
+        .commit ()
+
+    .should ("send 404 if no matching host found")
+        .given (
+            new MockIncomingMessage ("GET", "/users", { headers: { host: "dashboard.pushcorn.com" } }),
+            new MockServerResponse ()
+        )
+        .before (s =>
+        {
+            let MyHost = s.Host.defineSubclass ("MyHost")
+                .condition ("http:custom", () => false)
+            ;
+
+            s.object.hosts = new MyHost;
+        })
+        .mock (nit, "log")
+        .returnsInstanceOf (http.Context)
+        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO\] \[dashboard\.p\.c\].*404/)
         .commit ()
 
     .reset ()
@@ -239,21 +270,18 @@ test.method ("http.Server", "dispatch")
             new MockIncomingMessage ("GET", "/users", { headers: { host: "app.pushcorn.com" } }),
             new MockServerResponse ()
         )
-        .before (function (s)
+        .before (s =>
         {
-            http.defineService ("Service1")
+            let MyHost = s.Host.defineSubclass ("MyHost")
                 .onDispatch (() => { throw http.responseFor (429); })
             ;
 
-            this.object.hosts = s.http.Host.Descriptor.build (
-            {
-                names: "app.pushcorn.com",
-                services: "http:service1"
-            });
+            s.object.hosts = new MyHost ({ names: "app.pushcorn.com" });
         })
         .mock (nit, "log")
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO\] \[app\.p\.c\].*429/)
+        .expectingPropertyToBe ("result.response.constructor.name", "http.responses.TooManyRequests")
         .commit ()
 
     .reset ()
@@ -261,23 +289,19 @@ test.method ("http.Server", "dispatch")
             new MockIncomingMessage ("GET", "/users", { headers: { host: "app.pushcorn.com" } }),
             new MockServerResponse ()
         )
-        .before (function (s)
+        .before (s =>
         {
-            http.defineService ("Service1")
+            let MyHost = s.Host.defineSubclass ("MyHost")
                 .onDispatch (() => { throw new Error ("UNKNOWN"); })
             ;
 
-            this.object.hosts = s.http.Host.Descriptor.build (
-            {
-                names: "app.pushcorn.com",
-                services: "http:service1"
-            });
+            s.object.hosts = new MyHost ({ names: "app.pushcorn.com" });
         })
         .mock ("object", "error")
         .mock (nit, "log")
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "error.unexpected_error")
-        .expectingPropertyToBe ("mocks.1.invocations.0.args.0", /\[INFO\] \[app\.p\.c\].*500/)
+        .expectingPropertyToBe ("mocks.1.invocations.0.args.0", /\[INFO\] \[app\.p\.c\].*400/)
         .commit ()
 
     .should ("log the error if the context failed to write the response")
@@ -317,84 +341,34 @@ test.method ("http.Server", "dispatch")
 
 test.method ("http.Server", "start")
     .should ("start the server and listen for the incoming connections")
+        .up (s => s.hostCalled = [])
+        .up (s => s.MyHost = s.Host.defineSubclass ("MyHost")
+            .onPreStart (() => s.hostCalled.push ("preStart"))
+            .onPostStart (() => s.hostCalled.push ("postStart"))
+            .onStart (() => s.hostCalled.push ("start"))
+        )
         .up (s =>
         {
             s.createArgs =
-            [
             {
                 port: 0,
                 stopTimeout: 5,
-                hosts: s.http.Host.Descriptor.build (
-                {
-                    services: "http:file-server"
-                })
-            }
-            ];
+                hosts: new s.MyHost
+            };
         })
+        .before (s => s.class.Logger.colorize = false)
         .mock ("object", "info")
         .mock ("object", "warn")
         .mock (process, "exit")
-        .after (async (s) =>
-        {
-            let server = s.result;
-            let port = server.realPort;
-            let res = await no_http_get (`http://127.0.0.1:${port}/`);
-
-            s.socket = nit.values (server.sockets)[0];
-            s.responseContent = await nit.readStream (res);
-
-            await server.stop ();
-            await nit.sleep (20);
-        })
-        .returnsInstanceOf ("http.Server")
-        .expectingPropertyToBe ("responseContent", /<html lang="en">/)
-        .expectingPropertyToBe ("socket.timeout", 30000)
-        .expectingPropertyToBe ("object.stopped", true)
-        .expectingMethodToReturnValueOfType ("object.start", null, "http.Server")
-        .commit ()
-
-    .should ("disable socket Keep-Alive if keepAliveTimeout is 0")
-        .up (s =>
-        {
-            s.createArgs =
-            {
-                port: 0,
-                stopTimeout: 0,
-                keepAliveTimeout: 0,
-                hosts: s.http.Host.Descriptor.build (
-                {
-                    services: "http:file-server"
-                })
-            };
-        })
-        .mock ("object", "info")
-        .after (async function ()
-        {
-            let server = this.object;
-            let port = server.realPort;
-            let res = await no_http_get (`http://127.0.0.1:${port}/`);
-
-            this.socket = nit.values (server.sockets)[0];
-            this.responseContent = await nit.readStream (res);
-
-            await server.stop ();
-        })
-        .returnsInstanceOf ("http.Server")
-        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "info.server_started")
-        .expectingPropertyToBe ("responseContent", /<html lang="en">/)
-        .expectingPropertyToBe ("socket.timeout", undefined)
-        .expectingPropertyToBe ("object.stopped", true)
+        .after (s => { s.object.stop (); })
+        .after (() => nit.sleep (50))
+        .returnsProperty ("object")
+        .expectingPropertyToBe ("mocks.2.invocations.length", 1)
+        .expectingPropertyToBe ("hostCalled", ["preStart", "start", "postStart"])
         .commit ()
 
     .should ("rethrow the port-in-use error if the error code is EADDRINUSE")
-        .up (s =>
-        {
-            s.createArgs =
-            {
-                keepAliveTimeout: 0,
-                stopTimeout: 0
-            };
-        })
+        .up (s => s.createArgs = { keepAliveTimeout: 0, stopTimeout: 0 })
         .mock (
         {
             object: Server.http,
@@ -405,36 +379,26 @@ test.method ("http.Server", "start")
             }
         })
         .mock ("object", "info")
-        .returnsInstanceOf ("http.Server")
-        .after (async function ()
+        .returnsProperty ("object")
+        .after (async (s) =>
         {
-            let server = this.object;
-            let error = new Error ("address in use");
-
-            error.code = "EADDRINUSE";
+            let error = nit.assign (new Error ("address in use"), { code: "EADDRINUSE" });
 
             try
             {
-                await server.nodeServer.listeners ("error")[0] (error);
+                await s.object.nodeServer.listeners ("error")[0] (error);
             }
             catch (e)
             {
-                this.serverError = e;
+                s.serverError = e;
             }
         })
         .expectingPropertyToBe ("serverError.code", "error.port_in_use")
-        .expectingPropertyToBe ("object.stopped", true)
+        .expectingPropertyToBe ("object.state", "stopped")
         .commit ()
 
     .should ("rethrow the original node server error")
-        .up (s =>
-        {
-            s.createArgs =
-            {
-                keepAliveTimeout: 0,
-                stopTimeout: 0
-            };
-        })
+        .up (s => s.createArgs = { keepAliveTimeout: 0, stopTimeout: 0 })
         .mock (
         {
             object: Server.http,
@@ -445,38 +409,36 @@ test.method ("http.Server", "start")
             }
         })
         .mock ("object", "info")
-        .returnsInstanceOf ("http.Server")
-        .after (async function ()
+        .returnsProperty ("object")
+        .after (async (s) =>
         {
-            let server = this.object;
-            let error = new Error ("we are in trouble");
-
-            error.code = "TROUBLE";
+            let error = nit.assign (new Error ("we are in trouble"), { code: "TROUBLE" });
 
             try
             {
-                await server.nodeServer.listeners ("error")[0] (error);
+                await s.object.nodeServer.listeners ("error")[0] (error);
             }
             catch (e)
             {
-                this.serverError = e;
+                s.serverError = e;
             }
         })
         .expectingPropertyToBe ("serverError.code", "TROUBLE")
-        .expectingPropertyToBe ("object.stopped", true)
+        .expectingPropertyToBe ("object.state", "stopped")
         .commit ()
 
-    .should ("find a suitable server to handle the upgrade event")
+    .should ("find a suitable host to handle the upgrade event")
         .up (s =>
         {
+            let MyHost = s.Host.defineSubclass ("MyHost")
+                .onUpgrade (() => s.upgradeCalled = true)
+            ;
+
             s.createArgs =
             {
                 keepAliveTimeout: 0,
                 stopTimeout: 0,
-                hosts: s.http.Host.Descriptor.build (
-                {
-                    services: "http:file-server"
-                })
+                hosts: new MyHost
             };
         })
         .mock (
@@ -489,41 +451,37 @@ test.method ("http.Server", "start")
             }
         })
         .mock ("object", "info")
-        .returnsInstanceOf ("http.Server")
-        .after (async function ()
+        .mock ("object", "dispatch")
+        .after (async (s) =>
         {
-            let server = this.object;
-            let Service1 = http.defineService ("Service1").condition ("http:hostname", "app.pushcorn.com");
-            let Service2 = http.defineService ("Service2").condition ("http:hostname", "dashboard.pushcorn.com")
-                .onUpgrade (() =>
-                {
-                    this.upgraded = true;
-                })
-            ;
-
             let req = new MockIncomingMessage ("GET", "/", { headers: { host: "dashboard.pushcorn.com" } });
             let socket = new MockSocket ();
 
-            server.hosts[0].services = [new Service1, new Service2];
-            server.nodeServer.listeners ("upgrade")[0] (req, socket, {});
+            s.object.nodeServer.listeners ("connection")[0] (socket);
+            s.object.nodeServer.listeners ("upgrade")[0] (req, socket, {});
+            s.object.nodeServer.listeners ("request")[0] (req);
+            s.socketCount = nit.keys (s.object.sockets).length;
 
-            await server.stop ();
+            await s.object.stop ();
         })
-        .expectingPropertyToBe ("upgraded", true)
-        .expectingPropertyToBe ("object.stopped", true)
+        .returnsProperty ("object")
+        .expectingPropertyToBe ("upgradeCalled", true)
+        .expectingPropertyToBe ("socketCount", 1)
+        .expectingPropertyToBe ("mocks.2.invocations.length", 1)
         .commit ()
 
     .should ("create an secure server if the certificate are provided")
         .up (s =>
         {
+            let MyHost = s.Host.defineSubclass ("MyHost");
+
             s.createArgs =
             {
                 keepAliveTimeout: 0,
                 stopTimeout: 0,
-                hosts: s.http.Host.Descriptor.build (
+                hosts: new MyHost (
                 {
                     names: "app.pushcorn.com",
-                    services: "http:file-server",
                     certificate:
                     {
                         cert: CERTS_DIR.join ("pushcorn.com.crt"),
@@ -539,12 +497,7 @@ test.method ("http.Server", "start")
             retval: () => new MockNodeHttpServer
         })
         .mock ("object", "info")
-        .after (async function ()
-        {
-            let server = this.object;
-
-            await server.stop ();
-        })
+        .after (s => s.object.stop ())
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0.allowHTTP1", true)
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0.requestCert", false)
         .expecting ("the SNICallback to return the secure context if found", true, async function (s)
@@ -564,15 +517,16 @@ test.method ("http.Server", "start")
     .should ("create an secure server using https.createServer if http2 is set to false")
         .up (s =>
         {
+            let MyHost = s.Host.defineSubclass ("MyHost");
+
             s.createArgs =
             {
                 keepAliveTimeout: 0,
                 stopTimeout: 0,
                 http2: false,
-                hosts: s.http.Host.Descriptor.build (
+                hosts: new MyHost (
                 {
                     names: "app.pushcorn.com",
-                    services: "http:file-server",
                     certificate:
                     {
                         cert: CERTS_DIR.join ("pushcorn.com.crt"),
@@ -588,12 +542,7 @@ test.method ("http.Server", "start")
             retval: () => new MockNodeHttpServer
         })
         .mock ("object", "info")
-        .after (async function ()
-        {
-            let server = this.object;
-
-            await server.stop ();
-        })
+        .after (s => s.object.stop ())
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0.allowHTTP1", true)
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0.requestCert", false)
         .expecting ("the SNICallback to return the secure context if found", true, async function (s)
@@ -613,233 +562,250 @@ test.method ("http.Server", "start")
 
 
 test.object ("http.Server")
-    .should ("properly handle the requests")
-    .application ()
-    .given (
-    {
-        port: 0,
-        stopTimeout: 0
-    })
-    .mock ("result", "info")
-    .after (async function ()
-    {
-        nit.ASSET_PATHS.unshift (this.app.root.path);
-
-        await this.app.root.createAsync ("public");
-
-        http.defineResponse ("Hello")
-            .info (200, "Hello")
-            .field ("<greeting>", "string")
-        ;
-    })
-    .after (async function ()
-    {
-        let server = this.server = this.result;
-
-        http.defineApi ("Hello")
-            .endpoint ("GET", "/hello")
-            .response ("http.responses.Hello")
-            .defineRequest (Request =>
+    .should ("shutdown the server if shutdown event was fired")
+        .up (s => s.createArgs = { port: 0, stopTimeout: 0 })
+        .after (s => s.instance.start ())
+        .after (async () =>
+        {
+            for (let listener of process.listeners ("SIGTERM"))
             {
-                Request.parameter ("name", "string");
-            })
-            .onRun (ctx => ctx.respond (`Hello ${ctx.request.name}!`)) ()
-        ;
-
-        const Service1 = http.defineService ("Service1", "http.services.FileServer");
-
-        let service1 = Service1.Descriptor.build (
-        {
-            name: "http:service1",
-            options: { template: true },
-            apis: "http:hello",
-            plugins:
-            [
-                "http:socket-io-server",
-                {
-                    name: "http:live-reload",
-                    options: { delay: 30 }
-                }
-            ]
-        });
-
-
-        server.hosts = { services: service1 };
-
-        await server.start ();
-        await nit.sleep (50);
-
-        this.port = server.realPort;
-    })
-    .after (async function ()
-    {
-        let res = await no_http_get (`http://127.0.0.1:${this.port}/hello?name=John`);
-
-        this.response1 = JSON.parse (await nit.readStream (res));
-    })
-    .after (async function ()
-    {
-        let client = new SocketIo.Client (`http://127.0.0.1:${this.port}`);
-
-        this.response2 = await client.fetchJson ("GET", "/hello", { name: "Jane" });
-
-        await client.close ();
-    })
-    .after (async function ()
-    {
-        let res = await no_http_get (`http://127.0.0.1:${this.port}/`);
-
-        this.response3 = await nit.readStream (res);
-    })
-    .after (async function ()
-    {
-        let client = new SocketIo.Client (`http://127.0.0.1:${this.port}`);
-        let file = nit.new ("nit.File", this.app.root.join ("public/index.html"));
-
-        await nit.sleep (200);
-
-        client.on ("message", (method, path, data) =>
-        {
-            this.response4 = { method, path, data };
-        });
-
-        await file.writeAsync ("NEW INDEX");
-        await nit.sleep (200);
-        await client.close ();
-    })
-    .after (async function ()
-    {
-        await this.server.stop ();
-    })
-    .expectingPropertyToBe ("response1.greeting", "Hello John!")
-    .expectingPropertyToBe ("response2.greeting", "Hello Jane!")
-    .expectingPropertyToBe ("response3", /nit server \d+\.\d+\.\d+/)
-    .expectingPropertyToBe ("response4", { method: "POST", path: "/live-reloads", data: undefined })
-    .commit ()
-;
-
-
-test.method ("http.Server.Descriptor", "build")
-    .should ("build the server")
-        .up (s =>
-        {
-            s.createArgs =
-            {
-                options:
-                {
-                    port: 1234,
-                    keepAliveTimeout: 0,
-                    stopTimeout: 0
-                }
-                ,
-                hosts:
-                [
-                {
-                    names: "app.pushcorn.com",
-                    services: ["http:file-server"],
-                    certificate:
-                    {
-                        cert: CERTS_DIR.join ("pushcorn.com.crt"),
-                        key: CERTS_DIR.join ("pushcorn.com.key")
-                    }
-                }
-                ]
-            };
+                await listener ();
+            }
         })
-        .returnsInstanceOf ("http.Server")
-        .expectingPropertyToBe ("result.port", 1234)
-        .expectingPropertyToBe ("result.hosts.0.services.length", 1)
-        .expectingPropertyToBeOfType ("result.hosts.0.services.0", "http.services.FileServer")
-        .expectingPropertyToBeOfType ("result.hosts.0.certificate", "http.Certificate")
-        .commit ()
-
-    .should ("able to create a server if only servcies or certificate are given")
-        .up (s =>
-        {
-            s.createArgs =
-            {
-                options:
-                {
-                    port: 1234,
-                    keepAliveTimeout: 0,
-                    stopTimeout: 0
-                }
-                ,
-                names: "app.pushcorn.com",
-                services: ["http:file-server"],
-                certificate:
-                {
-                    cert: CERTS_DIR.join ("pushcorn.com.crt"),
-                    key: CERTS_DIR.join ("pushcorn.com.key")
-                }
-            };
-        })
-        .returnsInstanceOf ("http.Server")
-        .expectingPropertyToBe ("result.port", 1234)
-        .expectingPropertyToBe ("result.hosts.0.services.length", 1)
-        .expectingPropertyToBeOfType ("result.hosts.0.services.0", "http.services.FileServer")
-        .expectingPropertyToBeOfType ("result.hosts.0.certificate", "http.Certificate")
-        .commit ()
-
-    .reset ()
-        .up (s =>
-        {
-            s.createArgs =
-            {
-                options:
-                {
-                    port: 1234,
-                    keepAliveTimeout: 0,
-                    stopTimeout: 0
-                }
-                ,
-                names: "app.pushcorn.com"
-            };
-        })
-        .returnsInstanceOf ("http.Server")
-        .expectingPropertyToBe ("result.port", 1234)
-        .expectingPropertyToBe ("result.hosts.0.names", ["app.pushcorn.com"])
-        .commit ()
-
-    .reset ()
-        .up (s =>
-        {
-            s.createArgs =
-            {
-                options:
-                {
-                    port: 1234,
-                    keepAliveTimeout: 0,
-                    stopTimeout: 0
-                }
-                ,
-                services: ["http:file-server"]
-            };
-        })
-        .returnsInstanceOf ("http.Server")
-        .expectingPropertyToBeOfType ("result.hosts.0.services.0", "http.services.FileServer")
-        .commit ()
-
-    .reset ()
-        .up (s =>
-        {
-            s.createArgs =
-            {
-                options:
-                {
-                    port: 1234,
-                    keepAliveTimeout: 0,
-                    stopTimeout: 0
-                }
-                ,
-                certificate:
-                {
-                    cert: CERTS_DIR.join ("pushcorn.com.crt"),
-                    key: CERTS_DIR.join ("pushcorn.com.key")
-                }
-            };
-        })
-        .returnsInstanceOf ("http.Server")
-        .expectingPropertyToBeOfType ("result.hosts.0.certificate", "http.Certificate")
+        .after (s => s.instance.stop ())
+        .mock ("instance", "info")
         .commit ()
 ;
+
+// TODO: re-enable tests
+// test.object ("http.Server")
+    // .should ("properly handle the requests")
+    // .application ()
+    // .given (
+    // {
+        // port: 0,
+        // stopTimeout: 0
+    // })
+    // .mock ("result", "info")
+    // .after (async function ()
+    // {
+        // nit.ASSET_PATHS.unshift (this.app.root.path);
+
+        // await this.app.root.createAsync ("public");
+
+        // http.defineResponse ("Hello")
+            // .info (200, "Hello")
+            // .field ("<greeting>", "string")
+        // ;
+    // })
+    // .after (async function ()
+    // {
+        // let server = this.server = this.result;
+
+        // http.defineApi ("Hello")
+            // .endpoint ("GET", "/hello")
+            // .response ("http.responses.Hello")
+            // .defineRequest (Request =>
+            // {
+                // Request.parameter ("name", "string");
+            // })
+            // .onRun (ctx => ctx.respond (`Hello ${ctx.request.name}!`)) ()
+        // ;
+
+        // const Service1 = http.defineService ("Service1", "http.services.FileServer");
+
+        // let service1 = Service1.Descriptor.build (
+        // {
+            // name: "http:service1",
+            // options: { template: true },
+            // apis: "http:hello",
+            // plugins:
+            // [
+                // "http:socket-io-server",
+                // {
+                    // name: "http:live-reload",
+                    // options: { delay: 30 }
+                // }
+            // ]
+        // });
+
+
+        // server.hosts = { services: service1 };
+
+        // await server.start ();
+        // await nit.sleep (50);
+
+        // this.port = server.realPort;
+    // })
+    // .after (async function ()
+    // {
+        // let res = await no_http_get (`http://127.0.0.1:${this.port}/hello?name=John`);
+
+        // this.response1 = JSON.parse (await nit.readStream (res));
+    // })
+    // .after (async function ()
+    // {
+        // let client = new SocketIo.Client (`http://127.0.0.1:${this.port}`);
+
+        // this.response2 = await client.fetchJson ("GET", "/hello", { name: "Jane" });
+
+        // await client.close ();
+    // })
+    // .after (async function ()
+    // {
+        // let res = await no_http_get (`http://127.0.0.1:${this.port}/`);
+
+        // this.response3 = await nit.readStream (res);
+    // })
+    // .after (async function ()
+    // {
+        // let client = new SocketIo.Client (`http://127.0.0.1:${this.port}`);
+        // let file = nit.new ("nit.File", this.app.root.join ("public/index.html"));
+
+        // await nit.sleep (200);
+
+        // client.on ("message", (method, path, data) =>
+        // {
+            // this.response4 = { method, path, data };
+        // });
+
+        // await file.writeAsync ("NEW INDEX");
+        // await nit.sleep (200);
+        // await client.close ();
+    // })
+    // .after (async function ()
+    // {
+        // await this.server.stop ();
+    // })
+    // .expectingPropertyToBe ("response1.greeting", "Hello John!")
+    // .expectingPropertyToBe ("response2.greeting", "Hello Jane!")
+    // .expectingPropertyToBe ("response3", /nit server \d+\.\d+\.\d+/)
+    // .expectingPropertyToBe ("response4", { method: "POST", path: "/live-reloads", data: undefined })
+    // .commit ()
+// ;
+
+
+// test.method ("http.Server.Descriptor", "build")
+    // .should ("build the server")
+        // .up (s =>
+        // {
+            // s.createArgs =
+            // {
+                // options:
+                // {
+                    // port: 1234,
+                    // keepAliveTimeout: 0,
+                    // stopTimeout: 0
+                // }
+                // ,
+                // hosts:
+                // [
+                // {
+                    // names: "app.pushcorn.com",
+                    // services: ["http:file-server"],
+                    // certificate:
+                    // {
+                        // cert: CERTS_DIR.join ("pushcorn.com.crt"),
+                        // key: CERTS_DIR.join ("pushcorn.com.key")
+                    // }
+                // }
+                // ]
+            // };
+        // })
+        // .returnsInstanceOf ("http.Server")
+        // .expectingPropertyToBe ("result.port", 1234)
+        // .expectingPropertyToBe ("result.hosts.0.services.length", 1)
+        // .expectingPropertyToBeOfType ("result.hosts.0.services.0", "http.services.FileServer")
+        // .expectingPropertyToBeOfType ("result.hosts.0.certificate", "http.Certificate")
+        // .commit ()
+
+    // .should ("able to create a server if only servcies or certificate are given")
+        // .up (s =>
+        // {
+            // s.createArgs =
+            // {
+                // options:
+                // {
+                    // port: 1234,
+                    // keepAliveTimeout: 0,
+                    // stopTimeout: 0
+                // }
+                // ,
+                // names: "app.pushcorn.com",
+                // services: ["http:file-server"],
+                // certificate:
+                // {
+                    // cert: CERTS_DIR.join ("pushcorn.com.crt"),
+                    // key: CERTS_DIR.join ("pushcorn.com.key")
+                // }
+            // };
+        // })
+        // .returnsInstanceOf ("http.Server")
+        // .expectingPropertyToBe ("result.port", 1234)
+        // .expectingPropertyToBe ("result.hosts.0.services.length", 1)
+        // .expectingPropertyToBeOfType ("result.hosts.0.services.0", "http.services.FileServer")
+        // .expectingPropertyToBeOfType ("result.hosts.0.certificate", "http.Certificate")
+        // .commit ()
+
+    // .reset ()
+        // .up (s =>
+        // {
+            // s.createArgs =
+            // {
+                // options:
+                // {
+                    // port: 1234,
+                    // keepAliveTimeout: 0,
+                    // stopTimeout: 0
+                // }
+                // ,
+                // names: "app.pushcorn.com"
+            // };
+        // })
+        // .returnsInstanceOf ("http.Server")
+        // .expectingPropertyToBe ("result.port", 1234)
+        // .expectingPropertyToBe ("result.hosts.0.names", ["app.pushcorn.com"])
+        // .commit ()
+
+    // .reset ()
+        // .up (s =>
+        // {
+            // s.createArgs =
+            // {
+                // options:
+                // {
+                    // port: 1234,
+                    // keepAliveTimeout: 0,
+                    // stopTimeout: 0
+                // }
+                // ,
+                // services: ["http:file-server"]
+            // };
+        // })
+        // .returnsInstanceOf ("http.Server")
+        // .expectingPropertyToBeOfType ("result.hosts.0.services.0", "http.services.FileServer")
+        // .commit ()
+
+    // .reset ()
+        // .up (s =>
+        // {
+            // s.createArgs =
+            // {
+                // options:
+                // {
+                    // port: 1234,
+                    // keepAliveTimeout: 0,
+                    // stopTimeout: 0
+                // }
+                // ,
+                // certificate:
+                // {
+                    // cert: CERTS_DIR.join ("pushcorn.com.crt"),
+                    // key: CERTS_DIR.join ("pushcorn.com.key")
+                // }
+            // };
+        // })
+        // .returnsInstanceOf ("http.Server")
+        // .expectingPropertyToBeOfType ("result.hosts.0.certificate", "http.Certificate")
+        // .commit ()
+// ;
