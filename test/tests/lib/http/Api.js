@@ -1,20 +1,16 @@
-const http = nit.require ("http");
 const Context = nit.require ("http.Context");
 
-function defineApi ()
-{
-    return http.defineApi ("http.Api", true);
-}
 
-
-test.method (defineApi ().Context, "respond")
+test.method ("http.Api.Context", "respond")
     .should ("throw if the argument is not a response and the API does not define any response")
+        .up (s => s.class = s.http.Api.defineSubclass ("MyApi").Context)
         .up (s => s.createArgs = Context.new ("GET", "/"))
         .given ("the data")
         .throws ("error.no_default_response")
         .commit ()
 
     .should ("create the response if the first argument is not an instance of response")
+        .up (s => s.class = s.http.Api.defineSubclass ("MyApi").Context)
         .up (s => s.createArgs = Context.new ("GET", "/"))
         .before (s => s.class.outerClass.response ("http:text"))
         .given ("the data")
@@ -23,6 +19,7 @@ test.method (defineApi ().Context, "respond")
         .commit ()
 
     .should ("just send the response if it is an instance of response")
+        .up (s => s.class = s.http.Api.defineSubclass ("MyApi").Context)
         .up (s => s.createArgs = Context.new ("GET", "/"))
         .given (nit.new ("http.responses.RequestFailed", "error!"))
         .expectingPropertyToBeOfType ("result.response", "http.responses.RequestFailed")
@@ -31,20 +28,23 @@ test.method (defineApi ().Context, "respond")
 ;
 
 
-test.method (defineApi (), "info", true)
+test.method ("http.Api", "info", true)
     .should ("set the description meta data")
+        .up (s => s.class = s.class.defineSubclass ("MyApi"))
         .given ("find users")
         .expectingPropertyToBe ("class.description", "find users")
         .commit ()
 ;
 
 
-test.method (defineApi (), "preInit")
+test.method ("http.Api", "preInit")
     .should ("skip if the request has no parameters")
+        .up (s => s.class = s.class.defineSubclass ("MyApi"))
         .expectingPropertyToBe ("class.responses.length", 0)
         .commit ()
 
     .should ("add ValidationFailed response to the response list if the request has at least one parameter")
+        .up (s => s.class = s.class.defineSubclass ("MyApi"))
         .before (s =>
         {
             s.class.defineRequest (Request =>
@@ -58,8 +58,9 @@ test.method (defineApi (), "preInit")
 ;
 
 
-test.method (defineApi (), "postRun")
+test.method ("http.Api", "run")
     .should ("throw if the returned response was not in the list of allowed responses")
+        .up (s => s.class = s.class.defineSubclass ("MyApi"))
         .given (Context.new ("GET", "/"))
         .before (s =>
         {
@@ -68,11 +69,28 @@ test.method (defineApi (), "postRun")
         })
         .throws ("error.response_not_allowed")
         .commit ()
+
+    .should ("only check the valid response type if ctx.response is set")
+        .up (s => s.class = s.class.defineSubclass ("MyApi"))
+        .given (Context.new ("GET", "/"))
+        .before (s =>
+        {
+            s.class
+                .response ("http:file")
+                .onRun (function ()
+                {
+                    throw new Error ("EXCEPTION");
+                })
+            ;
+        })
+        .throws ("EXCEPTION")
+        .commit ()
 ;
 
 
-test.method (defineApi (), "postRun")
+test.method ("http.Api", "postRun")
     .should ("skip if the allowed response was not specified")
+        .up (s => s.class = s.class.defineSubclass ("MyApi"))
         .given (Context.new ("GET", "/"))
         .before (s =>
         {
@@ -83,8 +101,9 @@ test.method (defineApi (), "postRun")
 ;
 
 
-test.method (defineApi (), "preCatch")
+test.method ("http.Api", "catch")
     .should ("send the ValidationFailed response if the error code is error.model_validation_failed")
+        .up (s => s.class = s.class.defineSubclass ("MyApi"))
         .given (Context.new ("GET", "/"))
         .before (s =>
         {
@@ -106,13 +125,47 @@ test.method (defineApi (), "preCatch")
         .commit ()
 
     .should ("skip if the error code is not error.model_validation_failed")
-        .given (Context.new ("GET", "/"))
-        .before (s =>
-        {
-            s.args[0].error = new Error ("err");
-            s.args[0].error.code = "error.invalid_value";
-        })
-        .expectingPropertyToBe ("args.0.error.code", "error.invalid_value")
+        .given (Context.new ("GET", "/", null, { error: nit.assign (new Error ("ERR"), { code: "error.invalid_value" }) }))
+        .throws ("error.invalid_value")
         .commit ()
 
+    .should ("cast the error to the response of with same error code")
+        .up (s => s.class = s.class.defineSubclass ("MyApi"))
+        .up (s => s.class.defineRespone ("InvalidValue", InvalidValue =>
+        {
+            InvalidValue.meta ("code", "error.invalid_value");
+        }))
+        .given (Context.new ("GET", "/", null, { error: nit.assign (new Error ("ERR"), { code: "error.invalid_value" }) }))
+        .returns ()
+        .expectingPropertyToBeOfType ("args.0.response", "MyApi.InvalidValue")
+        .commit ()
+;
+
+
+test.compgenCompleter ("http.Api.compgencompleters.Completer")
+    .should ("generate the available API names")
+        .project ("myapp", true)
+        .given (
+        {
+            completionType: "type",
+            currentOption:
+            {
+                spec: "<api>",
+                type: "api"
+            }
+        })
+        .returns (["VALUE", "myapp:auto-path", "myapp:check-in", "myapp:get-blob", "myapp:hello", "http:get-api-spec"])
+        .commit ()
+;
+
+
+test.method ("http.Api", "defineRespone", true)
+    .should ("define an inner response")
+        .up (s => s.class = s.class.defineSubclass ("MyApi"))
+        .given ("DataReturned")
+        .expectingPropertyToBeOfType ("class.DataReturned", "http.Response", true)
+        .expectingPropertyToBe ("class.responses.length", 1)
+        .expectingMethodToReturnValue ("class.defineRespone", "JsonReturned", s => s.class)
+        .expectingPropertyToBe ("class.responses.length", 2)
+        .commit ()
 ;
