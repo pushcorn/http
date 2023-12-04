@@ -38,20 +38,11 @@ test.object ("http.Server")
         .mock (nit, "log")
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \[INFO\] \[app\.p\.c\]/)
         .commit ()
-;
 
-
-test.method ("http.Server", "selectObjectForHost", true)
-    .should ("find the object applicable for the specified host")
-    .up (s =>
-    {
-        let Service1 = http.defineService ("Service1").condition ("http:hostname", "app.pushcorn.com");
-        let Service2 = http.defineService ("Service2").condition ("http:hostname", "dashboard.pushcorn.com");
-
-        s.args = [[new Service1, new Service2], "dashboard.pushcorn.com"];
-    })
-    .returnsInstanceOf ("http.services.Service2")
-    .commit ()
+    .should ("create a default host if a service is specified")
+        .given ({ services: "http:file-server" })
+        .expectingPropertyToBe ("instance.hosts.length", 1)
+        .commit ()
 ;
 
 
@@ -138,6 +129,63 @@ test.method ("http.Server", "endSockets")
 
 
 test.method ("http.Server", "stop")
+    .should ("stop the server and its components")
+        .up (s =>
+        {
+            s.called = [];
+
+            const MyService = s.http.defineService ("MyService")
+                .onPreStop (() => s.called.push ("preStopService"))
+                .onPostStop (() => s.called.push ("postStopService"))
+                .onStop (() => s.called.push ("stopService"))
+            ;
+
+            const MyPlugin = s.http.defineServerPlugin ("MyPlugin")
+                .onPreStop (() => s.called.push ("preStopPlugin"))
+                .onPostStop (() => s.called.push ("postStopPlugin"))
+                .onStop (() => s.called.push ("stopPlugin"))
+            ;
+
+            const MyHost = s.http.defineHost ("MyHost")
+                .onPreStop (() => s.called.push ("preStopHost"))
+                .onPostStop (() => s.called.push ("postStopHost"))
+                .onStop (() => s.called.push ("stopHost"))
+            ;
+
+            s.class = s.class.defineSubclass ("MyServer")
+                .onPreStop (() => s.called.push ("preStopServer"))
+                .onPostStop (() => s.called.push ("postStopServer"))
+                .onStop (() => s.called.push ("stopServer"))
+            ;
+
+            s.class.serverplugin (new MyPlugin);
+            s.createArgs =
+            {
+                port: 0,
+                stopTimeout: 0,
+                hosts: new MyHost ({ services: new MyService })
+            };
+        })
+        .mock ("object", "info")
+        .before (s => s.object.start ())
+        .returnsResultOfExpr ("object")
+        .expectingPropertyToBe ("called",
+        [
+            "preStopService",
+            "preStopHost",
+            "preStopServer",
+            "preStopPlugin",
+            "stopService",
+            "stopHost",
+            "stopServer",
+            "stopPlugin",
+            "postStopService",
+            "postStopHost",
+            "postStopServer",
+            "postStopPlugin"
+        ])
+        .commit ()
+
     .should ("not force exit if stopTimeout is zero")
         .up (s => s.createArgs = { stopTimeout: 0, port: 0 })
         .mock ("object", "info")
@@ -180,15 +228,122 @@ test.method ("http.Server", "stop")
 ;
 
 
+test.method ("http.Server", "upgrade")
+    .should ("invoke the target host's upgrade method")
+        .up (s =>
+        {
+            s.called = [];
+
+            const MyService = s.http.defineService ("MyService")
+                .onPreUpgrade (() => s.called.push ("preUpgradeService"))
+                .onPostUpgrade (() => s.called.push ("postUpgradeService"))
+                .onUpgrade (() => s.called.push ("upgradeService"))
+            ;
+
+            const MyPlugin = s.http.defineServerPlugin ("MyPlugin")
+                .onPreUpgrade (() => s.called.push ("preUpgradePlugin"))
+                .onPostUpgrade (() => s.called.push ("postUpgradePlugin"))
+                .onUpgrade (() => s.called.push ("upgradePlugin"))
+            ;
+
+            const MyHost = s.http.defineHost ("MyHost")
+                .onPreUpgrade (() => s.called.push ("preUpgradeHost"))
+                .onPostUpgrade (() => s.called.push ("postUpgradeHost"))
+                .onUpgrade (() => s.called.push ("upgradeHost"))
+            ;
+
+            s.class = s.class.defineSubclass ("MyServer")
+                .onPreUpgrade (() => s.called.push ("preUpgradeServer"))
+                .onPostUpgrade (() => s.called.push ("postUpgradeServer"))
+                .onUpgrade (() => s.called.push ("upgradeServer"))
+            ;
+
+            s.class.serverplugin (new MyPlugin);
+            s.createArgs = { hosts: new MyHost ({ services: new MyService }) };
+
+            s.args =
+            [
+                new s.IncomingMessage ("GET", "/users", { headers: { host: "dashboard.pushcorn.com" } }),
+                new s.Socket
+            ];
+        })
+        .returnsResultOfExpr ("object")
+        .expectingPropertyToBe ("called",
+        [
+            "preUpgradeServer",
+            "preUpgradePlugin",
+            "upgradeServer",
+            "upgradePlugin",
+            "preUpgradeHost",
+            "upgradeHost",
+            "preUpgradeService",
+            "upgradeService",
+            "postUpgradeService",
+            "postUpgradeHost",
+            "postUpgradeServer",
+            "postUpgradePlugin"
+        ])
+        .commit ()
+;
+
+
 test.method ("http.Server", "dispatch")
-    .should ("dispatch the request to a suitable service")
-        .given (
-            new MockIncomingMessage ("GET", "/users", { headers: { host: "dashboard.pushcorn.com" } }),
-            new MockServerResponse ()
-        )
+    .should ("invoke the target host's dispatch method")
+        .up (s =>
+        {
+            s.called = [];
+
+            const MyService = s.http.defineService ("MyService")
+                .onPreDispatch (() => s.called.push ("preDispatchService"))
+                .onPostDispatch (() => s.called.push ("postDispatchService"))
+                .onDispatch (() => s.called.push ("dispatchService"))
+            ;
+
+            const MyPlugin = s.http.defineServerPlugin ("MyPlugin")
+                .onPreDispatch (() => s.called.push ("preDispatchPlugin"))
+                .onPostDispatch (() => s.called.push ("postDispatchPlugin"))
+                .onDispatch (() => s.called.push ("dispatchPlugin"))
+            ;
+
+            const MyHost = s.http.defineHost ("MyHost")
+                .onPreDispatch (() => s.called.push ("preDispatchHost"))
+                .onPostDispatch (() => s.called.push ("postDispatchHost"))
+                .onDispatch (() => s.called.push ("dispatchHost"))
+            ;
+
+            s.class = s.class.defineSubclass ("MyServer")
+                .onPreDispatch (() => s.called.push ("preDispatchServer"))
+                .onPostDispatch (() => s.called.push ("postDispatchServer"))
+                .onDispatch (() => s.called.push ("dispatchServer"))
+            ;
+
+            s.class.serverplugin (new MyPlugin);
+            s.createArgs = { hosts: new MyHost ({ services: new MyService }) };
+
+            let ctx = s.Context.new ({ headers: { host: "dashboard.pushcorn.com" } });
+
+            s.args = [ctx.req, ctx.res];
+        })
         .mock (nit, "log")
-        .returnsInstanceOf (http.Context)
-        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO\] \[dashboard\.p\.c\]/)
+        .returnsInstanceOf ("http.Context")
+        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO\].*\[dashboard\.p\.c\].*404/)
+        .expectingPropertyToBeOfType ("result.service", "http.services.MyService")
+        .expectingPropertyToBe ("called",
+        [
+
+            "preDispatchServer",
+            "preDispatchPlugin",
+            "dispatchServer",
+            "dispatchPlugin",
+            "preDispatchHost",
+            "dispatchHost",
+            "preDispatchService",
+            "dispatchService",
+            "postDispatchService",
+            "postDispatchHost",
+            "postDispatchServer",
+            "postDispatchPlugin"
+        ])
         .commit ()
 
     .should ("return 404 if no host was found")
@@ -209,15 +364,19 @@ test.method ("http.Server", "dispatch")
         .before (s =>
         {
             let MyHost = s.Host.defineSubclass ("MyHost")
+                .onPreDispatch (() => s.preDispatchCalled = true)
+                .onPostDispatch (() => s.postDispatchCalled = true)
                 .onDispatch (() => { throw 403; }) // eslint-disable-line no-throw-literal
             ;
 
-            s.object.hosts = new MyHost ({ names: "app.pushcorn.com" });
+            s.object.hosts = new MyHost ({ hostnames: "app.pushcorn.com" });
         })
         .mock (nit, "log")
         .returnsInstanceOf (http.Context)
-        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO\] \[app\.p\.c\].*403/)
+        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO\].*\[app\.p\.c\].*403/)
         .expectingPropertyToBe ("result.response.constructor.name", "http.responses.Forbidden")
+        .expectingPropertyToBe ("preDispatchCalled", true)
+        .expectingPropertyToBe ("postDispatchCalled", true)
         .commit ()
 
     .should ("dispatch the request to the first matching host")
@@ -237,13 +396,13 @@ test.method ("http.Server", "dispatch")
 
             s.object.hosts =
             [
-                new MyHost1 ({ names: "dashboard.pushcorn.com" }),
-                new MyHost2 ({ names: "app.pushcorn.com" })
+                new MyHost1 ({ hostnames: "dashboard.pushcorn.com" }),
+                new MyHost2 ({ hostnames: "app.pushcorn.com" })
             ];
         })
-        .mock (nit, "log")
-        .returnsInstanceOf (http.Context)
-        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO\] \[app\.p\.c\].*200/)
+        .mock ("class.Logger.prototype", "writeLog")
+        .returnsInstanceOf ("http.Context")
+        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO\].*\[app\.p\.c\].*200/)
         .expectingPropertyToBe ("result.response.text", "Hello")
         .commit ()
 
@@ -276,7 +435,7 @@ test.method ("http.Server", "dispatch")
                 .onDispatch (() => { throw http.responseFor (429); })
             ;
 
-            s.object.hosts = new MyHost ({ names: "app.pushcorn.com" });
+            s.object.hosts = new MyHost ({ hostnames: "app.pushcorn.com" });
         })
         .mock (nit, "log")
         .returnsInstanceOf (http.Context)
@@ -295,7 +454,7 @@ test.method ("http.Server", "dispatch")
                 .onDispatch (() => { throw new Error ("UNKNOWN"); })
             ;
 
-            s.object.hosts = new MyHost ({ names: "app.pushcorn.com" });
+            s.object.hosts = new MyHost ({ hostnames: "app.pushcorn.com" });
         })
         .mock ("object", "error")
         .mock (nit, "log")
@@ -340,20 +499,53 @@ test.method ("http.Server", "dispatch")
 
 
 test.method ("http.Server", "start")
-    .should ("start the server and listen for the incoming connections")
-        .up (s => s.hostCalled = [])
-        .up (s => s.MyHost = s.Host.defineSubclass ("MyHost")
-            .onPreStart (() => s.hostCalled.push ("preStart"))
-            .onPostStart (() => s.hostCalled.push ("postStart"))
-            .onStart (() => s.hostCalled.push ("start"))
-        )
+    .should ("init and start the server and its components")
         .up (s =>
         {
+            s.called = [];
+
+            const MyService = s.http.defineService ("MyService")
+                .onPreInit (() => s.called.push ("preInitService"))
+                .onPostInit (() => s.called.push ("postInitService"))
+                .onInit (() => s.called.push ("initService"))
+                .onPreStart (() => s.called.push ("preStartService"))
+                .onPostStart (() => s.called.push ("postStartService"))
+                .onStart (() => s.called.push ("startService"))
+            ;
+
+            const MyPlugin = s.http.defineServerPlugin ("MyPlugin")
+                .onPreInit (() => s.called.push ("preInitPlugin"))
+                .onPostInit (() => s.called.push ("postInitPlugin"))
+                .onInit (() => s.called.push ("initPlugin"))
+                .onPreStart (() => s.called.push ("preStartPlugin"))
+                .onPostStart (() => s.called.push ("postStartPlugin"))
+                .onStart (() => s.called.push ("startPlugin"))
+            ;
+
+            const MyHost = s.http.defineHost ("MyHost")
+                .onPreInit (() => s.called.push ("preInitHost"))
+                .onPostInit (() => s.called.push ("postInitHost"))
+                .onInit (() => s.called.push ("initHost"))
+                .onPreStart (() => s.called.push ("preStartHost"))
+                .onPostStart (() => s.called.push ("postStartHost"))
+                .onStart (() => s.called.push ("startHost"))
+            ;
+
+            s.class = s.class.defineSubclass ("MyServer")
+                .onPreInit (() => s.called.push ("preInitServer"))
+                .onPostInit (() => s.called.push ("postInitServer"))
+                .onInit (() => s.called.push ("initServer"))
+                .onPreStart (() => s.called.push ("preStartServer"))
+                .onPostStart (() => s.called.push ("postStartServer"))
+                .onStart (() => s.called.push ("startServer"))
+            ;
+
+            s.class.serverplugin (new MyPlugin);
             s.createArgs =
             {
                 port: 0,
                 stopTimeout: 5,
-                hosts: new s.MyHost
+                hosts: new MyHost ({ services: new MyService })
             };
         })
         .before (s => s.class.Logger.colorize = false)
@@ -364,7 +556,34 @@ test.method ("http.Server", "start")
         .after (() => nit.sleep (50))
         .returnsResultOfExpr ("object")
         .expectingPropertyToBe ("mocks.2.invocations.length", 1)
-        .expectingPropertyToBe ("hostCalled", ["preStart", "start", "postStart"])
+        .expectingPropertyToBe ("called",
+        [
+            "preInitServer",
+            "preInitPlugin",
+            "preInitHost",
+            "preInitService",
+            "initServer",
+            "initPlugin",
+            "initHost",
+            "initService",
+            "postInitServer",
+            "postInitPlugin",
+            "postInitHost",
+            "postInitService",
+
+            "preStartServer",
+            "preStartPlugin",
+            "preStartHost",
+            "preStartService",
+            "startServer",
+            "startPlugin",
+            "startHost",
+            "startService",
+            "postStartServer",
+            "postStartPlugin",
+            "postStartHost",
+            "postStartService"
+        ])
         .commit ()
 
     .should ("rethrow the port-in-use error if the error code is EADDRINUSE")
@@ -481,7 +700,7 @@ test.method ("http.Server", "start")
                 stopTimeout: 0,
                 hosts: new MyHost (
                 {
-                    names: "app.pushcorn.com",
+                    hostnames: "app.pushcorn.com",
                     certificate:
                     {
                         cert: CERTS_DIR.join ("pushcorn.com.crt"),
@@ -526,7 +745,7 @@ test.method ("http.Server", "start")
                 http2: false,
                 hosts: new MyHost (
                 {
-                    names: "app.pushcorn.com",
+                    hostnames: "app.pushcorn.com",
                     certificate:
                     {
                         cert: CERTS_DIR.join ("pushcorn.com.crt"),
@@ -563,13 +782,17 @@ test.method ("http.Server", "start")
 
 test.object ("http.Server")
     .should ("shutdown the server if shutdown event was fired")
+        .up (() => nit.SHUTDOWN_EVENTS.push ("SHUTDOWN"))
         .up (s => s.createArgs = { port: 0, stopTimeout: 0 })
         .after (s => s.instance.start ())
         .after (async () =>
         {
-            for (let listener of process.listeners ("SIGTERM"))
+            for (let listener of process.listeners ("SHUTDOWN"))
             {
-                await listener ();
+                if (listener.name == "stop")
+                {
+                    await listener ();
+                }
             }
         })
         .after (s => s.instance.stop ())
@@ -701,7 +924,7 @@ test.object ("http.Server")
                 // hosts:
                 // [
                 // {
-                    // names: "app.pushcorn.com",
+                    // hostnames: "app.pushcorn.com",
                     // services: ["http:file-server"],
                     // certificate:
                     // {
@@ -731,7 +954,7 @@ test.object ("http.Server")
                     // stopTimeout: 0
                 // }
                 // ,
-                // names: "app.pushcorn.com",
+                // hostnames: "app.pushcorn.com",
                 // services: ["http:file-server"],
                 // certificate:
                 // {
@@ -759,12 +982,12 @@ test.object ("http.Server")
                     // stopTimeout: 0
                 // }
                 // ,
-                // names: "app.pushcorn.com"
+                // hostnames: "app.pushcorn.com"
             // };
         // })
         // .returnsInstanceOf ("http.Server")
         // .expectingPropertyToBe ("result.port", 1234)
-        // .expectingPropertyToBe ("result.hosts.0.names", ["app.pushcorn.com"])
+        // .expectingPropertyToBe ("result.hosts.0.hostnames", ["app.pushcorn.com"])
         // .commit ()
 
     // .reset ()

@@ -242,6 +242,7 @@ test.method ("http.Service", "dispatch")
             "preDispatchService",
             "preDispatchPlugin",
             "dispatchService",
+            "dispatchPlugin",
             "preRunHandler",
             "runHandler",
             "postDispatchService",
