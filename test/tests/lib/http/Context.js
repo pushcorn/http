@@ -454,7 +454,7 @@ test.method ("http.Context", "render",
     .should ("render the view template with the given data")
     .before (s => s.object.service = s.createService (
     {
-        assetResolvers: { roots: "resources/html" }
+        assetresolvers: { roots: "resources/html" }
     }))
     .given ("file://hello.html", { firstname: "John" })
     .after (s => s.object.writeResponse ())
@@ -476,8 +476,8 @@ test.method ("http.Context", "loadTemplate",
     .should ("load the view template")
         .before (s => s.object.service = s.createService (
         {
-            assetResolvers: { roots: "resources/html" },
-            templateLoaders: { extensions: "html" }
+            assetresolvers: { roots: "resources/html" },
+            templateloaders: { extensions: "html" }
         }))
         .given ("page-one.html")
         .returns (nit.trim.text`
