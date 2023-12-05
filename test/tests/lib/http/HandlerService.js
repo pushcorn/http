@@ -11,7 +11,7 @@ test.method ("http.HandlerService", "forHandler", true)
 ;
 
 
-test.method ("http.HandlerService", "init")
+test.method ("http.HandlerService", "preInit")
     .should ("load handler of the specified type")
         .up (s => s.class = s.http.HandlerService
             .defineSubclass ("test.services.MyService")
@@ -37,9 +37,10 @@ test.method ("http.HandlerService", "init")
         })
         .project ("myapp", true)
         .returnsInstanceOf ("test.services.MyService")
-        .expectingPropertyToBe ("result.handlers.length", 3)
-        .expectingPropertyToBeOfType ("result.handlers.0", "myapp.apis.CheckIn")
-        .expectingPropertyToBeOfType ("result.handlers.1", "myapp.apis.GetBlob")
-        .expectingPropertyToBeOfType ("result.handlers.2", "http.apis.GetApiSpec")
+        .expectingPropertyToBe ("result.handlers.length", 4)
+        .expectingPropertyToBeOfType ("result.handlers.0", "myapp.apis.AutoPath")
+        .expectingPropertyToBeOfType ("result.handlers.1", "myapp.apis.CheckIn")
+        .expectingPropertyToBeOfType ("result.handlers.2", "myapp.apis.GetBlob")
+        .expectingPropertyToBeOfType ("result.handlers.3", "http.apis.GetApiSpec")
         .commit ()
 ;

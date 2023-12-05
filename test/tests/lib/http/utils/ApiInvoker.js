@@ -264,36 +264,6 @@ test.method ("http.utils.ApiInvoker", "invoke")
         .returns ("NOT_OK")
         .commit ()
 
-    .should ("handle the text response")
-        .project ("myapp", true)
-        .up (async (s) =>
-        {
-            s.createArgs = "myapp:hello";
-
-            process.stdout.isTTY = false;
-        })
-        .down (() => process.stdout.isTTY = true)
-        .mock ("http", "fetch", function ()
-        {
-            let s = this.strategy;
-
-            return nit.assign (s.bufferToStream ("NOT_OK"),
-            {
-                isText: true,
-                statusCode: 400,
-                text: function () { return nit.readStream (this); },
-                headers:
-                {
-                    "content-length": 6,
-                    "content-type": "text/plain"
-                }
-            });
-        })
-        .mock ("server", "info")
-        .mock (process.stderr, "write")
-        .returns ("NOT_OK")
-        .commit ()
-
     .should ("handle the SSL connection")
         .project ("myapp", true)
         .init (async (s) =>

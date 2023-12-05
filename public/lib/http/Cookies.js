@@ -21,7 +21,7 @@ module.exports = function (nit, global, Self)
         {
             var cfg = nit.typedArgsToObj (nit.array (arguments).slice (2),
             {
-                expires: ["integer", "string", "Date"], // days if integer
+                expires: "integer|string|Date", // days if integer
                 domain: "string",
                 path: "string",
                 secure: "boolean"
