@@ -23,8 +23,7 @@ module.exports = function (nit, http)
                 .parameter ("opt6...", "string*")
             ;
         })
-        .response ("myapp:HelloMessageReturned", "http:ValidationFailed")
-
+        .response ("myapp:HelloMessageReturned")
         .onRun (ctx =>
         {
             let { name, title } = ctx.request;

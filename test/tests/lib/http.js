@@ -30,6 +30,8 @@ test.object ("http.IncomingMessage")
                 "user-agent": "nit",
                 "content-type": "application/json; charset=UTF-8"
             };
+
+            test.mock (m, "text", () => "");
         })
         .expectingPropertyToBe ("result.hostname", "localhost")
         .expectingPropertyToBe ("result.protocol", "http")
@@ -39,6 +41,7 @@ test.object ("http.IncomingMessage")
         .expectingPropertyToBe ("result.contentType", "application/json")
         .expectingPropertyToBe ("result.isText", true)
         .expectingPropertyToBe ("result.isJson", true)
+        .expectingMethodToReturnValue ("result.json", null, undefined)
         .commit ()
 
     .should ("use return the value of x-forwarded-for for realIp if available")
@@ -205,7 +208,7 @@ test.object ("http.ClientRequestOptions")
 ;
 
 
-test.method (http, "fetch", true)
+test.method ("http", "fetch", true)
     .should ("make an HTTP request to the server")
         .up (() =>
         {
@@ -328,7 +331,7 @@ test.method (http, "fetchBinary", true)
 ;
 
 
-test.method (http, "fetchJson", true)
+test.method ("http", "fetchJson", true)
     .should ("fetch JSON content from the server")
         .up (() =>
         {
@@ -359,7 +362,7 @@ test.method (http, "fetchJson", true)
         })
         .useServer ({ services: "test:hello-empty" })
         .before (s => s.args = s.baseUrl)
-        .returns ()
+        .returns ({})
         .commit ()
 
     .should ("handle the post request")
@@ -425,7 +428,7 @@ test.method (http, "fetchJson", true)
             {
                 port: 0,
                 stopTimeout: 0,
-                services: ["@test.services.Redir", "@test.services.Ping"]
+                services: ["test:redir", "test:ping"]
             });
         })
         .useServer ({ services: ["test:redir", "test:ping"] })
@@ -495,5 +498,24 @@ test.method (http, "fetchJson", true)
             }
         ])
         .returns ({ message: "pong", name: "test2" })
+        .commit ()
+;
+
+
+test.method ("http", "selectApplicableObject", true)
+    .should ("find the object applicable for the specified host")
+        .preCommit (s =>
+        {
+            s.Service1 = http.defineService ("Service1").condition ("http:hostname", "app.pushcorn.com");
+            s.Service2 = http.defineService ("Service2").condition ("http:hostname", "dashboard.pushcorn.com");
+
+            s.inputs =
+            [
+                [[new s.Service1, new s.Service2], "dashboard.pushcorn.com"],
+                [[new s.Service1, new s.Service2], http.Context.new ({ headers: { host: "dashboard.pushcorn.com" } })],
+                [[new s.Service1, new s.Service2], { headers: { host: "dashboard.pushcorn.com" } }]
+            ];
+        })
+        .returnsResultOfExpr ("args[0][1]")
         .commit ()
 ;

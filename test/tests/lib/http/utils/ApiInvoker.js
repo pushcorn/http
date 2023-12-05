@@ -1,3 +1,4 @@
+const CERTS_DIR = nit.new ("nit.Dir", test.TEST_PROJECT_PATH).subdir ("resources/certs");
 const IMG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACJSURBVEhL7ZC9CYBADEbP2iEEp7JxAPdwBZex02EcQ/0iBCzC/ZlTkDx4RYrLC+cMwzB+QQ1bRRtYwSAbPJQdoRe6bIbS41x32MEg9NULlJakStEBRqMRT44yFF+htDRkdpTJiT+OMilxtSgTE1ePMr54sSgjxYtHmXv8tShD8Qn212QYxnc4dwKskJKEHrOFUQAAAABJRU5ErkJggg==";
 const IMG = Buffer.from (IMG_BASE64, "base64");
 
@@ -229,10 +230,7 @@ test.method ("http.utils.ApiInvoker", "invoke")
         .after (s => s.server.stop ())
         .mock ("server", "info")
         .mock (process.stdout, "write")
-        .down (() =>
-        {
-            process.stdout.isTTY = true;
-        })
+        .down (() => process.stdout.isTTY = true)
         .returns (IMG.toString ("binary"))
         .commit ()
 
@@ -244,7 +242,6 @@ test.method ("http.utils.ApiInvoker", "invoke")
 
             process.stdout.isTTY = false;
         })
-        .after (s => s.server.stop ())
         .down (() => process.stdout.isTTY = true)
         .mock ("http", "fetch", function ()
         {
@@ -275,7 +272,6 @@ test.method ("http.utils.ApiInvoker", "invoke")
 
             process.stdout.isTTY = false;
         })
-        .after (s => s.server.stop ())
         .down (() => process.stdout.isTTY = true)
         .mock ("http", "fetch", function ()
         {
@@ -296,6 +292,46 @@ test.method ("http.utils.ApiInvoker", "invoke")
         .mock ("server", "info")
         .mock (process.stderr, "write")
         .returns ("NOT_OK")
+        .commit ()
+
+    .should ("handle the SSL connection")
+        .project ("myapp", true)
+        .init (async (s) =>
+        {
+            s.server = s.createServer (
+            {
+                hostnames: "app.pushcorn.com",
+                services: "http:api-server",
+                certificate:
+                {
+                    cert: CERTS_DIR.join ("pushcorn.com.crt"),
+                    key: CERTS_DIR.join ("pushcorn.com.key")
+                }
+            });
+        })
+        .up (async (s) =>
+        {
+            await s.server.start ();
+            process.stdout.isTTY = false;
+
+            s.createArgs =
+            {
+                api: "myapp:hello",
+                url: "https://127.0.0.1",
+                host: "app.pushcorn.com",
+                port: s.server.realPort,
+                insecure: true,
+                parameters:
+                {
+                    name: "Jane Doe"
+                }
+            };
+        })
+        .after (s => s.server.stop ())
+        .down (() => process.stdout.isTTY = true)
+        .mock ("server", "info")
+        .mock (process.stdout, "write")
+        .expectingPropertyToBe ("mocks.1.invocations.0.args.0", /200 The hello/)
         .commit ()
 
 ;

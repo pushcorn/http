@@ -22,7 +22,9 @@ test.method ("http.Service", "dispatch")
                 })
             ;
 
-            s.createArgs = { apis: [new Api1, new Api2] };
+            const Action1 = s.http.defineAction ("Action1", true);
+
+            s.createArgs = { apis: [new Api1, new Api2], actions: new Action1 };
         })
         .expectingPropertyToBe ("handledBy", "Api2")
         .commit ()
