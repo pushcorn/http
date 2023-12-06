@@ -1,0 +1,11 @@
+test.plugin ("http:handler-task-adapter", "run")
+    .should ("run the adapated task")
+        .project ("project-a", true, true)
+        .init (s => s.hostClass = s.http.defineHandler ("MyHandler"))
+        .init (s => s.hostClassName = "")
+        .init (s => s.pluginArgs = "nit:say-hello")
+        .givenContext ({ data: { message: "There" } })
+        .expectingPropertyToBeOfType ("result.response", "http.responses.Text")
+        .expectingPropertyToBe ("result.response.text", "Hello There!")
+        .commit ()
+;

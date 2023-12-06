@@ -14,6 +14,8 @@ nit.test.Strategy
     .memo ("Host", () => nit.require ("http.Host"))
     .memo ("Service", () => nit.require ("http.Service"))
     .memo ("Api", () => nit.require ("http.Api"))
+    .memo ("Action", () => nit.require ("http.Action"))
+    .memo ("Handler", () => nit.require ("http.Handler"))
     .memo ("ApiSpec", () => nit.require ("http.ApiSpec"))
     .memo ("Cookies", () => nit.require ("http.Cookies"))
     .memo ("stream", () => require ("stream"))
