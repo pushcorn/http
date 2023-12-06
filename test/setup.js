@@ -1,9 +1,17 @@
+nit.arrayRemove (nit.SHUTDOWN_EVENTS, "SHUTDOWN");
+
+
 nit.test.Strategy
     .memo ("http", () => nit.require ("http"))
     .memo ("Xhr", () => nit.require ("http.Xhr"))
     .memo ("XmlHttpRequest", () => nit.require ("http.mocks.XmlHttpRequest"))
+    .memo ("IncomingMessage", () => nit.require ("http.mocks.IncomingMessage"))
+    .memo ("ServerResponse", () => nit.require ("http.mocks.ServerResponse"))
+    .memo ("NodeHttpServer", () => nit.require ("http.mocks.NodeHttpServer"))
+    .memo ("Socket", () => nit.require ("http.mocks.Socket"))
     .memo ("Context", () => nit.require ("http.Context"))
     .memo ("Server", () => nit.require ("http.Server"))
+    .memo ("Host", () => nit.require ("http.Host"))
     .memo ("Service", () => nit.require ("http.Service"))
     .memo ("Api", () => nit.require ("http.Api"))
     .memo ("ApiSpec", () => nit.require ("http.ApiSpec"))
@@ -40,49 +48,48 @@ nit.test.Strategy
             xhr.responseText = await nit.readStream (result);
         });
     })
-    .method ("createServer", function (descriptor)
+    .method ("createServer", function (options)
     {
-        descriptor = descriptor || { names: "*" };
-        descriptor.options = nit.assign.defined ({ port: 0, sslPort: 0, stopTimeout: 0 }, descriptor.options);
+        options = nit.assign ({ hostnames: "*", port: 0, sslPort: 0, stopTimeout: 0 }, options);
 
-        return this.http.Server.Descriptor.build (descriptor);
+        return new this.http.Server (options);
     })
-    .method ("createService", function ()
+    .method ("createService", function (options)
     {
-        return this.Service.Descriptor.build (...arguments);
+        return new this.http.Service (options);
     })
-    .method ("useApi", function (descriptor)
+    .method ("useApi", function (options)
     {
         return this
             .before (s =>
             {
                 s.server = s.server || s.createServer ();
                 s.service = s.service || s.createService ();
-                s.api = s.Api.Descriptor.build (descriptor);
 
                 s.server.hosts[0].services.push (s.service);
-                s.service.handlers.push (s.api);
+                s.service.apis.push (options);
+                s.api = s.service.apis[0];
             })
         ;
     })
-    .method ("useService", function (descriptor)
+    .method ("useService", function (options)
     {
         return this
             .before (s =>
             {
                 s.server = s.server || s.createServer ();
-                s.service = s.service || s.createService (descriptor);
+                s.service = s.service || s.createService (options);
 
                 s.server.hosts[0].services.push (s.service);
             })
         ;
     })
-    .method ("useServer", function (descriptor)
+    .method ("useServer", function (options)
     {
         return this
             .up (s =>
             {
-                s.server = s.createServer (descriptor);
+                s.server = s.createServer (options);
             })
             .before (async (s) =>
             {

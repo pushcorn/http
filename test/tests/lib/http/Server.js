@@ -1,18 +1,13 @@
 const CERTS_DIR = nit.new ("nit.Dir", test.TEST_PROJECT_PATH).subdir ("resources/certs");
 
 const http = nit.require ("http");
-// const no_http = require ("http");
-// const no_http_get = nit.promisify (no_http, "get", true);
-// const SocketIo = nit.require ("http.SocketIo");
+const SocketIo = nit.require ("http.SocketIo");
 const Context = nit.require ("http.Context");
 const MockIncomingMessage = nit.require ("http.mocks.IncomingMessage");
 const MockServerResponse = nit.require ("http.mocks.ServerResponse");
 const MockNodeHttpServer = nit.require ("http.mocks.NodeHttpServer");
 const MockSocket = nit.require ("http.mocks.Socket");
 const Server = nit.require ("http.Server");
-
-
-nit.arrayRemove (nit.SHUTDOWN_EVENTS, "SHUTDOWN");
 
 
 test.object ("http.Server")
@@ -800,235 +795,109 @@ test.object ("http.Server")
         .commit ()
 ;
 
-// TODO: re-enable tests
-// test.object ("http.Server")
-    // .should ("properly handle the requests")
-    // .application ()
-    // .given (
-    // {
-        // port: 0,
-        // stopTimeout: 0
-    // })
-    // .mock ("result", "info")
-    // .after (async function ()
-    // {
-        // nit.ASSET_PATHS.unshift (this.app.root.path);
-
-        // await this.app.root.createAsync ("public");
-
-        // http.defineResponse ("Hello")
-            // .info (200, "Hello")
-            // .field ("<greeting>", "string")
-        // ;
-    // })
-    // .after (async function ()
-    // {
-        // let server = this.server = this.result;
-
-        // http.defineApi ("Hello")
-            // .endpoint ("GET", "/hello")
-            // .response ("http.responses.Hello")
-            // .defineRequest (Request =>
-            // {
-                // Request.parameter ("name", "string");
-            // })
-            // .onRun (ctx => ctx.respond (`Hello ${ctx.request.name}!`)) ()
-        // ;
-
-        // const Service1 = http.defineService ("Service1", "http.services.FileServer");
-
-        // let service1 = Service1.Descriptor.build (
-        // {
-            // name: "http:service1",
-            // options: { template: true },
-            // apis: "http:hello",
-            // plugins:
-            // [
-                // "http:socket-io-server",
-                // {
-                    // name: "http:live-reload",
-                    // options: { delay: 30 }
-                // }
-            // ]
-        // });
 
 
-        // server.hosts = { services: service1 };
+test.object ("http.Server")
+    .should ("properly handle the requests")
+        .application ()
+        .given ({ port: 0, stopTimeout: 0 })
+        .mock ("result", "info")
+        .after (async (s) =>
+        {
+            nit.ASSET_PATHS.unshift (s.app.root.path);
 
-        // await server.start ();
-        // await nit.sleep (50);
+            await s.app.root.createAsync ("public");
 
-        // this.port = server.realPort;
-    // })
-    // .after (async function ()
-    // {
-        // let res = await no_http_get (`http://127.0.0.1:${this.port}/hello?name=John`);
+            s.http.defineResponse ("Hello")
+                .info (200, "Hello")
+                .field ("<greeting>", "string")
+            ;
+        })
+        .after (async (s) =>
+        {
+            let server = s.server = s.result;
 
-        // this.response1 = JSON.parse (await nit.readStream (res));
-    // })
-    // .after (async function ()
-    // {
-        // let client = new SocketIo.Client (`http://127.0.0.1:${this.port}`);
+            s.http.defineApi ("Hello")
+                .endpoint ("GET", "/hello")
+                .response ("http.responses.Hello")
+                .defineRequest (Request =>
+                {
+                    Request.parameter ("name", "string");
+                })
+                .onRun (ctx => ctx.respond (`Hello ${ctx.request.name}!`)) ()
+            ;
 
-        // this.response2 = await client.fetchJson ("GET", "/hello", { name: "Jane" });
+            s.http.defineService ("Service1", "http.services.FileServer");
 
-        // await client.close ();
-    // })
-    // .after (async function ()
-    // {
-        // let res = await no_http_get (`http://127.0.0.1:${this.port}/`);
+            let host = new s.Host (
+            {
+                services:
+                [
+                    {
+                        "@name": "http:socket-io",
+                        apis: "http:hello"
+                    }
+                    ,
+                    {
+                        "@name": "http:live-reload",
+                        delay: 30
+                    }
+                    ,
+                    {
+                        "@name": "http:service1",
+                        template: true,
+                        apis: "http:hello"
+                    }
+                ]
+            });
 
-        // this.response3 = await nit.readStream (res);
-    // })
-    // .after (async function ()
-    // {
-        // let client = new SocketIo.Client (`http://127.0.0.1:${this.port}`);
-        // let file = nit.new ("nit.File", this.app.root.join ("public/index.html"));
+            server.hosts = host;
 
-        // await nit.sleep (200);
+            await server.start ();
 
-        // client.on ("message", (method, path, data) =>
-        // {
-            // this.response4 = { method, path, data };
-        // });
+            s.port = s.server.realPort;
+        })
+        .after (async (s) =>
+        {
+            let res = await s.http.fetch (`http://127.0.0.1:${s.port}/hello?name=John`);
 
-        // await file.writeAsync ("NEW INDEX");
-        // await nit.sleep (200);
-        // await client.close ();
-    // })
-    // .after (async function ()
-    // {
-        // await this.server.stop ();
-    // })
-    // .expectingPropertyToBe ("response1.greeting", "Hello John!")
-    // .expectingPropertyToBe ("response2.greeting", "Hello Jane!")
-    // .expectingPropertyToBe ("response3", /nit server \d+\.\d+\.\d+/)
-    // .expectingPropertyToBe ("response4", { method: "POST", path: "/live-reloads", data: undefined })
-    // .commit ()
-// ;
+            s.response1 = JSON.parse (await nit.readStream (res));
+        })
+        .after (async (s) =>
+        {
+            let client = new SocketIo.Client (`http://127.0.0.1:${s.port}`);
 
+            s.response2 = await client.fetchJson ("GET", "/hello", { name: "Jane" });
 
-// test.method ("http.Server.Descriptor", "build")
-    // .should ("build the server")
-        // .up (s =>
-        // {
-            // s.createArgs =
-            // {
-                // options:
-                // {
-                    // port: 1234,
-                    // keepAliveTimeout: 0,
-                    // stopTimeout: 0
-                // }
-                // ,
-                // hosts:
-                // [
-                // {
-                    // hostnames: "app.pushcorn.com",
-                    // services: ["http:file-server"],
-                    // certificate:
-                    // {
-                        // cert: CERTS_DIR.join ("pushcorn.com.crt"),
-                        // key: CERTS_DIR.join ("pushcorn.com.key")
-                    // }
-                // }
-                // ]
-            // };
-        // })
-        // .returnsInstanceOf ("http.Server")
-        // .expectingPropertyToBe ("result.port", 1234)
-        // .expectingPropertyToBe ("result.hosts.0.services.length", 1)
-        // .expectingPropertyToBeOfType ("result.hosts.0.services.0", "http.services.FileServer")
-        // .expectingPropertyToBeOfType ("result.hosts.0.certificate", "http.Certificate")
-        // .commit ()
+            await client.close ();
+        })
+        .after (async (s) =>
+        {
+            let res = await s.http.fetch (`http://127.0.0.1:${s.port}/`);
 
-    // .should ("able to create a server if only servcies or certificate are given")
-        // .up (s =>
-        // {
-            // s.createArgs =
-            // {
-                // options:
-                // {
-                    // port: 1234,
-                    // keepAliveTimeout: 0,
-                    // stopTimeout: 0
-                // }
-                // ,
-                // hostnames: "app.pushcorn.com",
-                // services: ["http:file-server"],
-                // certificate:
-                // {
-                    // cert: CERTS_DIR.join ("pushcorn.com.crt"),
-                    // key: CERTS_DIR.join ("pushcorn.com.key")
-                // }
-            // };
-        // })
-        // .returnsInstanceOf ("http.Server")
-        // .expectingPropertyToBe ("result.port", 1234)
-        // .expectingPropertyToBe ("result.hosts.0.services.length", 1)
-        // .expectingPropertyToBeOfType ("result.hosts.0.services.0", "http.services.FileServer")
-        // .expectingPropertyToBeOfType ("result.hosts.0.certificate", "http.Certificate")
-        // .commit ()
+            s.response3 = await nit.readStream (res);
+        })
+        .after (async (s) =>
+        {
+            let client = new SocketIo.Client (`http://127.0.0.1:${s.port}`);
+            let file = nit.new ("nit.File", s.app.root.join ("public/index.html"));
 
-    // .reset ()
-        // .up (s =>
-        // {
-            // s.createArgs =
-            // {
-                // options:
-                // {
-                    // port: 1234,
-                    // keepAliveTimeout: 0,
-                    // stopTimeout: 0
-                // }
-                // ,
-                // hostnames: "app.pushcorn.com"
-            // };
-        // })
-        // .returnsInstanceOf ("http.Server")
-        // .expectingPropertyToBe ("result.port", 1234)
-        // .expectingPropertyToBe ("result.hosts.0.hostnames", ["app.pushcorn.com"])
-        // .commit ()
+            await nit.sleep (200);
 
-    // .reset ()
-        // .up (s =>
-        // {
-            // s.createArgs =
-            // {
-                // options:
-                // {
-                    // port: 1234,
-                    // keepAliveTimeout: 0,
-                    // stopTimeout: 0
-                // }
-                // ,
-                // services: ["http:file-server"]
-            // };
-        // })
-        // .returnsInstanceOf ("http.Server")
-        // .expectingPropertyToBeOfType ("result.hosts.0.services.0", "http.services.FileServer")
-        // .commit ()
+            client.on ("message", (method, path, data) =>
+            {
+                s.response4 = { method, path, data };
+            });
 
-    // .reset ()
-        // .up (s =>
-        // {
-            // s.createArgs =
-            // {
-                // options:
-                // {
-                    // port: 1234,
-                    // keepAliveTimeout: 0,
-                    // stopTimeout: 0
-                // }
-                // ,
-                // certificate:
-                // {
-                    // cert: CERTS_DIR.join ("pushcorn.com.crt"),
-                    // key: CERTS_DIR.join ("pushcorn.com.key")
-                // }
-            // };
-        // })
-        // .returnsInstanceOf ("http.Server")
-        // .expectingPropertyToBeOfType ("result.hosts.0.certificate", "http.Certificate")
-        // .commit ()
-// ;
+            await file.writeAsync ("NEW INDEX");
+            await nit.sleep (200);
+            await client.close ();
+            await nit.sleep (200);
+        })
+        .deinit (s => s.server.stop ())
+        .expectingPropertyToBe ("response1.greeting", "Hello John!")
+        .expectingPropertyToBe ("response2.greeting", "Hello Jane!")
+        .expectingPropertyToBe ("response3", /nit server \d+\.\d+\.\d+/)
+        .expectingPropertyToBe ("response4", { method: "POST", path: "/live-reloads", data: undefined })
+        .commit ()
+;
