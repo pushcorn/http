@@ -4,8 +4,8 @@ test.object ("http.Host")
         {
             hostnames: "app.pushcorn.com",
             services: "http:file-server",
-            requestFilters: "http:json-body-parser",
-            responseFilters: "http:body-compressor",
+            requestfilters: "http:json-body-parser",
+            responsefilters: "http:body-compressor",
             certificate:
             {
                 cert: "pushcorn.com.crt",
@@ -17,8 +17,8 @@ test.object ("http.Host")
         .expectingPropertyToBe ("result.conditions.length", 1)
         .expectingPropertyToBe ("result.hostnames", ["app.pushcorn.com"])
         .expectingPropertyToBeOfType ("result.certificate", "http.Certificate")
-        .expectingPropertyToBeOfType ("result.requestFilters.0", "http.requestfilters.JsonBodyParser")
-        .expectingPropertyToBeOfType ("result.responseFilters.0", "http.responsefilters.BodyCompressor")
+        .expectingPropertyToBeOfType ("result.requestfilters.0", "http.requestfilters.JsonBodyParser")
+        .expectingPropertyToBeOfType ("result.responsefilters.0", "http.responsefilters.BodyCompressor")
         .expectingPropertyToBeOfType ("result.services.0", "http.services.FileServer")
         .expectingPropertyToBe ("result.hostname", "app.pushcorn.com")
         .commit ()
@@ -27,8 +27,8 @@ test.object ("http.Host")
         .given (
         {
             services: "http:file-server",
-            requestFilters: "http:json-body-parser",
-            responseFilters: "http:body-compressor",
+            requestfilters: "http:json-body-parser",
+            responsefilters: "http:body-compressor",
             certificate:
             {
                 cert: "pushcorn.com.crt",
@@ -318,5 +318,20 @@ test.method ("http.Host", "upgrade")
             "postUpgradePlugin"
         ])
         .expectingPropertyToBeOfType ("upgradeArg", "http.mocks.IncomingMessage")
+        .commit ()
+;
+
+
+test.method ("http.Host", "lookupService")
+    .should ("lookup the owned service by name")
+        .up (s =>
+        {
+            const Service1 = s.http.defineService ("TestService1");
+            const Service2 = s.http.defineService ("TestService2");
+
+            s.createArgs = { services: [new Service1, new Service2] };
+        })
+        .given ("http:test-service2")
+        .returnsInstanceOf ("http.services.TestService2")
         .commit ()
 ;

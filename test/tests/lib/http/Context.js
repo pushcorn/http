@@ -117,30 +117,15 @@ test.method ("http.Context", "buildRequest",
 ;
 
 
-test.method ("http.Context", "readRequest",
-    {
-        createArgs:
+test.method ("http.Context", "readRequest")
+    .should ("parse the request headers and cookies")
+        .up (s => s.createArgs =
         [
             new MockIncomingMessage ("GET", "/users?a=b"),
             new MockServerResponse
-        ]
-    })
-    .should ("parse the request headers and cookies")
-        .before (function ()
+        ])
+        .before (s =>
         {
-            this.object.req.cookies =
-            {
-                e: "f"
-            };
-
-            this.object.req.headers =
-            {
-                cookie: "a=b; c=d",
-                "access-token": "12345"
-            };
-
-            this.object.appliedRequestFilters = [];
-
             const InspectSecond = http.defineRequestFilter ("InspectSecond")
                 .orderAfter ("InspectFirst")
                 .method ("apply", function (ctx)
@@ -164,7 +149,27 @@ test.method ("http.Context", "readRequest",
                 })
             ;
 
-            this.object.requestFilters.push (new InspectThird, new InspectSecond, new InspectFirst);
+
+            const MyHandler = s.http.defineHandler ("MyHandler")
+                .requestfilter (new InspectThird)
+                .requestfilter (new InspectSecond)
+                .requestfilter (new InspectFirst)
+            ;
+
+            let ctx = s.object;
+
+            ctx.handler = new MyHandler;
+            ctx.appliedRequestFilters = [];
+            ctx.req.cookies =
+            {
+                e: "f"
+            };
+
+            ctx.req.headers =
+            {
+                cookie: "a=b; c=d",
+                "access-token": "12345"
+            };
         })
         .returns ()
         .expectingPropertyToBe ("object.queryParams", { a: "b" })
@@ -558,12 +563,8 @@ test.method ("http.Context", "writeResponse",
 test.method ("http.Context", "writeResponse")
     .should ("apply the response filters")
         .up (s => s.createArgs = [new MockIncomingMessage ("GET", "/"), new MockServerResponse])
-        .before (function ()
+        .before (s =>
         {
-            this.object.appliedResponseFilters = [];
-            this.object.response = nit.new ("http.responses.Json", { json: { v: 1 } });
-            this.object.responseHeader ("x-server", "nit");
-
             const FilterTwo = http.defineResponseFilter ("FilterTwo")
                 .orderAfter ("FilterOne")
                 .method ("apply", function (ctx)
@@ -591,7 +592,18 @@ test.method ("http.Context", "writeResponse")
                 })
             ;
 
-            this.object.responseFilters.push (new FilterTwo, new FilterOne, new FilterThree);
+            const MyHandler = s.http.defineHandler ("MyHandler")
+                .responsefilter (new FilterTwo)
+                .responsefilter (new FilterOne)
+                .responsefilter (new FilterThree)
+            ;
+
+            let ctx = s.object;
+
+            ctx.handler = new MyHandler;
+            ctx.appliedResponseFilters = [];
+            ctx.response = nit.new ("http.responses.Json", { json: { v: 1 } });
+            ctx.responseHeader ("x-server", "nit");
         })
         .returnsInstanceOf ("http.Context")
         .expectingPropertyToBe ("result.appliedResponseFilters", ["FilterOne", "FilterTwo"])
@@ -603,59 +615,10 @@ test.method ("http.Context", "writeResponse")
         })
         .commit ()
 
-    .should ("rebuild the response body if the response is changed by a response filter")
-        .up (s => s.createArgs = [new MockIncomingMessage ("GET", "/"), new MockServerResponse])
-        .before (function ()
-        {
-            this.object.appliedResponseFilters = [];
-            this.object.response = nit.new ("http.responses.Json", { json: { v: 1 } });
-
-            const FilterTwo = http.defineResponseFilter ("FilterTwo")
-                .orderAfter ("FilterOne")
-                .method ("apply", function (ctx)
-                {
-                    ctx.appliedResponseFilters.push (this.constructor.simpleName);
-                })
-            ;
-
-            const FilterOne = http.defineResponseFilter ("FilterOne")
-                .method ("apply", function (ctx)
-                {
-                    ctx.appliedResponseFilters.push (this.constructor.simpleName);
-                    ctx.sendText ("filter one!");
-                })
-            ;
-
-            const FilterThree = http.defineResponseFilter ("FilterThree")
-                .orderAfter ("FilterTwo")
-                .condition ("http:custom", function ()
-                {
-                    return true;
-                })
-                .method ("apply", function (ctx)
-                {
-                    ctx.appliedResponseFilters.push (this.constructor.simpleName);
-                })
-            ;
-
-            this.object.responseFilters.push (new FilterTwo, new FilterOne, new FilterThree);
-        })
-        .returnsInstanceOf ("http.Context")
-        .expectingPropertyToBe ("result.appliedResponseFilters", ["FilterOne", "FilterTwo", "FilterThree"])
-        .expectingPropertyToBe ("result.res.headers",
-        {
-            "Content-Length": 11,
-            "Content-Type": "text/plain"
-        })
-        .commit ()
-
     .should ("clear the content-length header if it cannnot be determined")
         .up (s => s.createArgs = [new MockIncomingMessage ("GET", "/"), new MockServerResponse])
-        .before (function ()
+        .before (s =>
         {
-            this.object.appliedResponseFilters = [];
-            this.object.response = nit.new ("http.responses.Json", { json: { v: 1 } });
-
             const StreamResponse = http.defineResponse ("Stream")
                 .method ("toBody", function ()
                 {
@@ -665,14 +628,14 @@ test.method ("http.Context", "writeResponse")
 
             const FilterTwo = http.defineResponseFilter ("FilterTwo")
                 .orderAfter ("FilterOne")
-                .method ("apply", function (ctx)
+                .onApply (function (ctx)
                 {
                     ctx.appliedResponseFilters.push (this.constructor.simpleName);
                 })
             ;
 
             const FilterOne = http.defineResponseFilter ("FilterOne")
-                .method ("apply", function (ctx)
+                .onApply (function (ctx)
                 {
                     ctx.appliedResponseFilters.push (this.constructor.simpleName);
                     ctx.sendText ("filter one!");
@@ -685,14 +648,25 @@ test.method ("http.Context", "writeResponse")
                 {
                     return true;
                 })
-                .method ("apply", function (ctx)
+                .onApply (function (ctx)
                 {
                     ctx.response = new StreamResponse ();
                     ctx.appliedResponseFilters.push (this.constructor.simpleName);
                 })
             ;
 
-            this.object.responseFilters.push (new FilterTwo, new FilterOne, new FilterThree);
+            const MyHandler = s.http.defineHandler ("MyHandler")
+                .responsefilter (new FilterTwo)
+                .responsefilter (new FilterOne)
+                .responsefilter (new FilterThree)
+            ;
+
+            nit.do (s.object, ctx =>
+            {
+                ctx.handler = new MyHandler;
+                ctx.appliedResponseFilters = [];
+                ctx.response = nit.new ("http.responses.Json", { json: { v: 1 } });
+            });
         })
         .returnsInstanceOf ("http.Context")
         .expectingPropertyToBe ("result.appliedResponseFilters", ["FilterOne", "FilterTwo", "FilterThree"])

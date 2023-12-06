@@ -1,79 +1,49 @@
 test.command ("http.commands.Server")
     .should ("create and start an instance of http.Server")
-        .mock (nit, "log")
-        .given (
-        {
-            port: 0,
-            stopTimeout: 0
-        })
+        .given ({ port: 0, stopTimeout: 0 })
         .after (async (s) =>
         {
-            await nit.sleep (20);
+            let server = s.object.server;
 
-            s.port = s.result.realPort;
+            s.port = server.realPort;
 
-            await s.result.stop ();
-            await nit.sleep (20);
+            await server.stop ();
         })
-        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /nit http server.*started/)
+        .mock ("http.Server.Logger.prototype", "writeLog")
+        .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO].*nit http server/)
         .expectingPropertyToBe ("port", /\d+/)
         .commit ()
 
-    .should ("not return the server if meta property returnServer is false")
-        .mock (nit, "log")
-        .before (s => s.class.returnServer = false)
-        .given (
-        {
-            port: 0,
-            stopTimeout: 0
-        })
-        .after (async (s) =>
-        {
-            await nit.sleep (20);
-            await s.object.server.stop ();
-            await nit.sleep (20);
-        })
-        .returns ("")
-        .commit ()
-
     .should ("accept custom root")
-        .mock (nit, "log")
-        .before (s => s.class.returnServer = true)
         .given (
         {
             port: 0,
             stopTimeout: 0,
-            root: "."
+            root: ".",
+            dev: false
         })
         .after (async (s) =>
         {
-            await nit.sleep (20);
             await s.object.server.stop ();
-            await nit.sleep (20);
         })
-        .returnsInstanceOf ("http.Server")
-        .expectingPropertyToBe ("result.hosts.0.services.0.assetResolvers.0.assetResolver.roots", [nit.path.join (test.TEST_PROJECT_PATH, "..")])
+        .mock ("http.Server.Logger.prototype", "writeLog")
+        .expectingPropertyToBe ("object.server.assetresolvers.0.assetResolver.roots", [nit.path.join (test.TEST_PROJECT_PATH, "..")])
         .commit ()
 
-    .should ("accept custom descriptor")
-        .mock (nit, "log")
-        .before (s => s.class.returnServer = true)
+    .should ("use the config specifed by the config key")
+        .up (() => nit.config ("my-server", { services: "http:file-server" }))
         .given (
         {
             port: 0,
             stopTimeout: 0,
-            descriptor:
-            {
-                services: "http:file-server"
-            }
+            config: "my-server"
         })
         .after (async (s) =>
         {
-            await nit.sleep (20);
             await s.object.server.stop ();
-            await nit.sleep (20);
         })
-        .returnsInstanceOf ("http.Server")
-        .expectingPropertyToBeOfType ("result.hosts.0.services.0", "http.services.FileServer")
+        .mock ("http.Server.Logger.prototype", "writeLog")
+        .expectingPropertyToBe ("object.server.hosts.length", 1)
+        .expectingPropertyToBe ("object.server.hosts.0.services.length", 1)
         .commit ()
 ;
