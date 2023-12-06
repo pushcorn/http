@@ -34,7 +34,8 @@ test.workflowStep ("workflowsteps.Api")
         {
             "statusCode": 200,
             "statusMessage": "The hello message has been returned.",
-            "headers": {
+            "headers":
+            {
                 "x-response-name": "HelloMessageReturned",
                 "content-type": "application/json",
                 "content-length": "33",
@@ -42,10 +43,11 @@ test.workflowStep ("workflowsteps.Api")
                 "cache-control": "no-cache",
                 "connection": "keep-alive",
                 "keep-alive": "timeout=30"
-              },
-              "body": {
-                  "message": "Hello Mr. John Doe!"
-              }
+            },
+            "body":
+            {
+                "message": "Hello Mr. John Doe!"
+            }
         })
         .commit ()
 
@@ -95,7 +97,7 @@ test.workflowStep ("workflowsteps.Api")
     .should ("handle the text response")
         .project ("myapp", true)
         .given ("myapp:hello")
-        .mock ("class.ApiInvoker.prototype", "fetch", function ()
+        .mock ("http", "fetch", function ()
         {
             let s = this.strategy;
 

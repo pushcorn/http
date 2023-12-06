@@ -38,17 +38,42 @@ test.subcommand ("commands.Api", "myapp:hello")
             {
                 return {
                     destroy: nit.noop,
+                    binary: nit.noop,
+                    destroyed: true,
                     statusCode: 400,
                     headers: {}
                 };
             });
 
+            s.commandArgs.push ("--silent");
             await s.testUp (...s.args, "--opt1", "val3");
 
             s.helloResult3 = await s.test ();
             s.exitCode3 = process.exitCode;
 
             process.exitCode = 0;
+        })
+        .after (async (s) =>
+        {
+            test.mock (s.http, "fetch", function ()
+            {
+                return nit.assign (s.bufferToStream ("ALL OK"),
+                {
+                    destroy: nit.noop,
+                    isText: true,
+                    statusCode: 200,
+                    text: function () { return nit.readStream (this); },
+                    headers:
+                    {
+                        "content-length": 6,
+                        "content-type": "text/plain"
+                    }
+                });
+            });
+
+            await s.testUp (...s.args);
+
+            s.helloResult4 = await s.test ();
         })
         .deinit (async (s) =>
         {
@@ -59,8 +84,9 @@ test.subcommand ("commands.Api", "myapp:hello")
         .expectingPropertyToBe ("mocks.1.invocations.0.args.0", /200/)
         .expectingPropertyToBe ("mocks.2.invocations.0.args.0", /200/)
         .expectingPropertyToBe ("helloResult2", nit.toJson ({ message: "Hello Mr. John Doe!" }, "  "))
-        .expectingPropertyToBe ("mocks.1.invocations.1.args.0", /400/)
+        .expectingPropertyToBe ("mocks.1.invocations.length", 1)
         .expectingPropertyToBe ("helloResult3", undefined)
+        .expectingPropertyToBe ("helloResult4", Colorizer.gray ("ALL OK"))
         .expectingPropertyToBe ("exitCode3", 1)
         .commit ()
 ;
