@@ -28,6 +28,64 @@ test.method ("http.Service", "dispatch")
         })
         .expectingPropertyToBe ("handledBy", "Api2")
         .commit ()
+
+    .should ("handle the path prefix")
+        .given (Context.new ("GET", "/test/two"))
+        .up (s =>
+        {
+            s.handledBy = undefined;
+
+            const Api1 = s.http.defineApi ("Api1", true)
+                .condition ("http:request-path", "/one")
+                .onRun (() =>
+                {
+                    s.handledBy = "Api1";
+                })
+            ;
+
+            const Api2 = s.http.defineApi ("Api2", true)
+                .condition ("http:request-path", "/two")
+                .onRun (() =>
+                {
+                    s.handledBy = "Api2";
+                })
+            ;
+
+            const Action1 = s.http.defineAction ("Action1", true);
+
+            s.createArgs = { path: "/test", apis: [new Api1, new Api2], actions: new Action1 };
+        })
+        .expectingPropertyToBe ("handledBy", "Api2")
+        .commit ()
+
+    .reset ()
+        .given (Context.new ("GET", "/test/more/two"))
+        .up (s =>
+        {
+            s.handledBy = undefined;
+
+            const Api1 = s.http.defineApi ("Api1", true)
+                .condition ("http:request-path", "/one")
+                .onRun (() =>
+                {
+                    s.handledBy = "Api1";
+                })
+            ;
+
+            const Api2 = s.http.defineApi ("Api2", true)
+                .condition ("http:request-path", "/two")
+                .onRun (() =>
+                {
+                    s.handledBy = "Api2";
+                })
+            ;
+
+            const Action1 = s.http.defineAction ("Action1", true);
+
+            s.createArgs = { path: "/test", apis: [new Api1, new Api2], actions: new Action1 };
+        })
+        .expectingPropertyToBe ("handledBy", undefined)
+        .commit ()
 ;
 
 
@@ -312,10 +370,15 @@ test.method ("http.Service", "upgrade")
 ;
 
 
-test.object ("http.Service")
-    .should ("create the hostname conditions for the specified hostnames")
-        .given ({ hostnames: ["*.pushcorn.com", "app.pushcorn.test"] })
-        .expectingPropertyToBe ("instance.conditions.length", 1)
-        .expectingPropertyToBe ("instance.conditions.0.patterns.length", 2)
+test.method ("http.Service", "applicableTo")
+    .should ("return false if the request path does not match the specified prefix")
+        .up (s =>
+        {
+            s.class = s.class.defineSubclass ("MyService");
+            s.createArgs = { path: "/my" };
+        })
+        .given (Context.new ("GET", "/your/data"))
+        .returns (false)
         .commit ()
 ;
+

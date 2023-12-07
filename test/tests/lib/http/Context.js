@@ -700,21 +700,35 @@ test.method ("http.Context", "redirect",
 ;
 
 
-test.method ("http.Context", "enter",
-    {
-        createArgs:
+test.method ("http.Context", "enter")
+    .should ("set the new path and store the old one")
+        .up (s => s.createArgs =
         [
             new MockIncomingMessage ("GET", "http://localhost/users?a=b"),
             new MockServerResponse
-        ]
-    })
-    .should ("set the new path and store the old one")
+        ])
         .given ("/api/users")
         .expectingPropertyToBe ("object.path", "/api/users")
         .expectingPropertyToBe ("object.pathOverrides", ["/api/users"])
         .commit ()
 
-    .should ("use '/' if not path were given")
+    .should ("remove the first segment if no path were given")
+        .up (s => s.createArgs =
+        [
+            new MockIncomingMessage ("GET", "http://localhost/test/users?a=b"),
+            new MockServerResponse
+        ])
+        .given ()
+        .expectingPropertyToBe ("object.path", "/users")
+        .expectingPropertyToBe ("object.pathOverrides", ["/users"])
+        .commit ()
+
+    .should ("use '/' if the new path is empty")
+        .up (s => s.createArgs =
+        [
+            new MockIncomingMessage ("GET", "http://localhost/users?a=b"),
+            new MockServerResponse
+        ])
         .given ()
         .expectingPropertyToBe ("object.path", "/")
         .expectingPropertyToBe ("object.pathOverrides", ["/"])
