@@ -131,7 +131,7 @@ test.method ("http.Api", "catch")
 
     .should ("cast the error to the response of with same error code")
         .up (s => s.class = s.class.defineSubclass ("MyApi"))
-        .up (s => s.class.defineRespone ("InvalidValue", InvalidValue =>
+        .up (s => s.class.defineResponse ("InvalidValue", InvalidValue =>
         {
             InvalidValue.meta ("code", "error.invalid_value");
         }))
@@ -159,13 +159,13 @@ test.compgenCompleter ("http.Api.compgencompleters.Completer")
 ;
 
 
-test.method ("http.Api", "defineRespone", true)
+test.method ("http.Api", "defineResponse", true)
     .should ("define an inner response")
         .up (s => s.class = s.class.defineSubclass ("MyApi"))
         .given ("DataReturned")
         .expectingPropertyToBeOfType ("class.DataReturned", "http.Response", true)
         .expectingPropertyToBe ("class.responses.length", 1)
-        .expectingMethodToReturnValue ("class.defineRespone", "JsonReturned", s => s.class)
+        .expectingMethodToReturnValue ("class.defineResponse", "JsonReturned", s => s.class)
         .expectingPropertyToBe ("class.responses.length", 2)
         .commit ()
 ;
