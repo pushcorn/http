@@ -1,6 +1,45 @@
 const Context = nit.require ("http.Context");
 
 
+test.object ("http.Service")
+    .should ("also add the items added to .apis to .handlers")
+        .up (s => s.MyApi = s.http.defineApi ("MyApi"))
+        .up (s => s.args = { apis: new s.MyApi })
+        .returnsResultOfExpr ("instance")
+        .expectingPropertyToBe ("result.handlers.length", 1)
+        .expectingPropertyToBe ("result.apis.length", 1)
+        .expectingPropertyToBeOfType ("result.handlers.0", "http.apis.MyApi")
+        .commit ()
+
+    .should ("also add the items added to .actions to .handlers")
+        .up (s => s.MyAction = s.http.defineAction ("MyAction"))
+        .up (s => s.args = { actions: new s.MyAction })
+        .returnsResultOfExpr ("instance")
+        .expectingPropertyToBe ("result.handlers.length", 1)
+        .expectingPropertyToBe ("result.actions.length", 1)
+        .expectingPropertyToBeOfType ("result.handlers.0", "http.actions.MyAction")
+        .commit ()
+
+    .should ("also add the apis added to .handlers to .apis")
+        .up (s => s.MyApi = s.http.defineApi ("MyApi"))
+        .up (s => s.args = { handlers: new s.MyApi })
+        .returnsResultOfExpr ("instance")
+        .expectingPropertyToBe ("result.handlers.length", 1)
+        .expectingPropertyToBe ("result.apis.length", 1)
+        .expectingPropertyToBeOfType ("result.apis.0", "http.apis.MyApi")
+        .commit ()
+
+    .should ("also add the actionss added to .handlers to .actions")
+        .up (s => s.MyAction = s.http.defineAction ("MyAction"))
+        .up (s => s.args = { handlers: new s.MyAction })
+        .returnsResultOfExpr ("instance")
+        .expectingPropertyToBe ("result.handlers.length", 1)
+        .expectingPropertyToBe ("result.actions.length", 1)
+        .expectingPropertyToBeOfType ("result.actions.0", "http.actions.MyAction")
+        .commit ()
+;
+
+
 test.method ("http.Service", "dispatch")
     .should ("find a suitable API to run")
         .given (Context.new ("GET", "/two"))

@@ -216,7 +216,7 @@ test.method ("http.Server", "stop")
         .returnsResultOfExpr ("object")
         .expectingPropertyToBeOfType ("object.sockets.1234", "http.mocks.Socket")
         .expectingPropertyToBe ("mocks.0.invocations.length", 1)
-        .expectingPropertyToBe ("mocks.1.invocations.length", 3)
+        .expectingPropertyToBe ("mocks.1.invocations.length", 1)
         .expectingPropertyToBe ("mocks.3.invocations.length", 1)
         .expectingPropertyToBe ("mocks.3.invocations.0.args.1.message", "cannot shutdown!")
         .commit ()
@@ -581,6 +581,34 @@ test.method ("http.Server", "start")
         ])
         .commit ()
 
+    .should ("log the startup error and stop")
+        .up (s => s.MyHost = s.http.defineHost ("MyHost")
+            .onStart (function ()
+            {
+                throw new Error ("START_ERR");
+            })
+        )
+        .up (s => s.createArgs =
+        {
+            keepAliveTimeout: 0,
+            stopTimeout: 0,
+            hosts: new s.MyHost
+        })
+        .mock (
+        {
+            object: Server.http,
+            method: "createServer",
+            retval: function ()
+            {
+                return new MockNodeHttpServer ();
+            }
+        })
+        .mock ("object", "info")
+        .mock ("object", "error")
+        .returnsResultOfExpr ("object")
+        .expectingPropertyToBe ("object.state", "stopped")
+        .commit ()
+
     .should ("rethrow the port-in-use error if the error code is EADDRINUSE")
         .up (s => s.createArgs = { keepAliveTimeout: 0, stopTimeout: 0 })
         .mock (
@@ -796,12 +824,12 @@ test.object ("http.Server")
 ;
 
 
-
 test.object ("http.Server")
     .should ("properly handle the requests")
         .application ()
         .given ({ port: 0, stopTimeout: 0 })
         .mock ("result", "info")
+        // .mock ("server", "info")
         .after (async (s) =>
         {
             nit.ASSET_PATHS.unshift (s.app.root.path);
