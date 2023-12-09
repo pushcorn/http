@@ -18,6 +18,7 @@ nit.test.Strategy
     .memo ("Handler", () => nit.require ("http.Handler"))
     .memo ("ApiSpec", () => nit.require ("http.ApiSpec"))
     .memo ("Cookies", () => nit.require ("http.Cookies"))
+    .memo ("Crypto", () => nit.require ("nit.utils.Crypto"))
     .memo ("stream", () => require ("stream"))
 
     .method ("givenContext", function ()
@@ -27,6 +28,26 @@ nit.test.Strategy
     .method ("bufferToStream", function (buf)
     {
         return this.stream.Readable.from (Buffer.from (buf));
+    })
+    .method ("writePropertyToFile", function (property, filename, ext)
+    {
+        let v = nit.get (this, property);
+
+        return this.writeDataForFile (nit.toJson (v instanceof nit.Object ? v.toPojo () : v, "  "), filename, ext);
+    })
+    .method ("writeDataForFile", function (data, filename, ext)
+    {
+        let self = this;
+
+        filename = filename.replace (/\.js$/, ext || ".data.json");
+
+        if (!nit.fs.existsSync (filename)
+            || self.Crypto.md5 (data) != self.Crypto.md5 (nit.fs.readFileSync (filename)))
+        {
+            nit.fs.writeFileSync (filename, data);
+        }
+
+        return self;
     })
     .method ("mockXhrSend", function ()
     {
@@ -112,5 +133,25 @@ nit.test.Strategy
                 s.server = null;
             })
         ;
+    })
+    .method ("expectingPropertyJsonToBe", function (property, filename, ext)
+    {
+        const self = this;
+
+        filename = filename.replace (/\.js$/, ext || ".data.json");
+
+        self.expecting (`the JSON of ${property} to be %{value}`,
+            nit.fs.readFileSync (filename, "utf8"),
+            function ()
+            {
+                let v = nit.get (self, property);
+
+                return nit.toJson (v instanceof nit.Object ? v.toPojo () : v, "  ");
+            }
+        );
+
+        self.expectors[self.expectors.length - 1].validator.sourceLine = self.constructor.getSourceLine (__filename);
+
+        return self;
     })
 ;

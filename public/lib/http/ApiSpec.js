@@ -1,12 +1,13 @@
 module.exports = function (nit, http, Self)
 {
     return (Self = nit.defineClass ("http.ApiSpec"))
+        .m ("error.endpoint_conflict", "The API endpoint '%{endpoint}' of '%{api}' has been used by the '%{owner}'.")
         .defineInnerClass ("Spec", false, true, function (Spec)
         {
             Spec
                 .staticMethod ("emptyToUndef", function (v)
                 {
-                    return nit.is.empty (v) ? undefined : v;
+                    return nit.is.empty.nested (v instanceof nit.Object ? v.toPojo () : v) ? undefined : v;
                 })
                 .staticMethod ("field", function ()
                 {
@@ -29,13 +30,13 @@ module.exports = function (nit, http, Self)
         .defineSpec ("Constraint", function (Constraint)
         {
             Constraint
-                .constant ("PROPERTIES_TO_IGNORE", nit.keys (nit.Constraint.propertyMap))
                 .field ("<type>", "string")
                 .field ("[code]", "string")
                 .field ("[message]", "string")
                 .field ("name", "string?")
                 .field ("condition", "string?")
                 .field ("options", "object?")
+                .property ("owner", Self.name + ".Field|" + Self.name + ".Parameter")
             ;
         })
         .defineSpec ("Parameter", function (Parameter)
@@ -47,7 +48,8 @@ module.exports = function (nit, http, Self)
                 .field ("[defval]", "any")
                 .field ("label", "string?")
                 .field ("source", "string?")
-                .field ("constraints...", Self.Constraint.name + "?")
+                .field ("constraints...", Self.Constraint.name + "?", { backref: "owner" })
+                .property ("request", Self.name + ".Request")
             ;
         })
         .defineSpec ("Field", function (Field)
@@ -57,7 +59,8 @@ module.exports = function (nit, http, Self)
                 .field ("[type]", "string?")
                 .field ("[description]", "string?")
                 .field ("[defval]", "any")
-                .field ("constraints...", Self.Constraint.name + "?")
+                .field ("constraints...", Self.Constraint.name + "?", { backref: "owner" })
+                .property ("owner", Self.name + ".Response|" + Self.name + ".Model")
             ;
         })
         .defineSpec ("Response", function (Response)
@@ -67,20 +70,23 @@ module.exports = function (nit, http, Self)
                 .field ("<status>", "integer", "The response status code.")
                 .field ("[message]", "string?", "The response status message.")
                 .field ("[code]", "string?", "The error code that the response represents.")
-                .field ("fields...", Self.Field.name + "?", "The response fields.")
+                .field ("fields...", Self.Field.name + "?", "The response fields.", { backref: "owner" })
+                .property ("spec", Self.name)
             ;
         })
         .defineSpec ("Model", function (Model)
         {
             Model
                 .field ("<name>", "string", "The model name.")
-                .field ("fields...", Self.Field.name + "?", "The model fields.")
+                .field ("fields...", Self.Field.name + "?", "The model fields.", { backref: "owner" })
+                .property ("spec", Self.name)
             ;
         })
         .defineSpec ("Request", function (Request)
         {
             Request
-                .field ("parameters...", Self.Parameter.name + "?")
+                .field ("parameters...", Self.Parameter.name + "?", { backref: "request" })
+                .property ("api", Self.name + ".Api")
             ;
         })
         .defineSpec ("Api", function (Api)
@@ -90,17 +96,54 @@ module.exports = function (nit, http, Self)
                 .field ("[method]", "string?")
                 .field ("[path]", "string?")
                 .field ("[description]", "string?")
-                .field ("request", Self.Request.name)
+                .field ("request", Self.Request.name + "?", { backref: "api" })
                 .field ("responses...", "string?")
+                .property ("spec", Self.name)
             ;
         })
-        .field ("apis...", Self.Api.name)
-        .field ("responses...", Self.Response.name)
-        .field ("models...", Self.Model.name)
+        .field ("apis...", Self.Api.name,
+        {
+            backref: "spec",
+            onLink: function (api)
+            {
+                var self = this;
 
+                self.apis.forEach (function (a)
+                {
+                    if (a.path == api.path && a.method == api.method && a.name != api.name)
+                    {
+                        self.throw ("error.endpoint_conflict", { endpoint: a.method + " " + a.path, api: api.name, owner: a.name });
+                    }
+                });
+            }
+        })
+        .field ("responses...", Self.Response.name, { backref: "spec" })
+        .field ("models...", Self.Model.name, { backref: "spec" })
+
+        .method ("sort", function ()
+        {
+            var self = this;
+            var keys = ["apis", "responses", "models"];
+
+            nit.each (keys, function (p)
+            {
+                self[p] = nit.arrayUnique (self[p], function (a, b) { return a.name == b.name; });
+            });
+
+            nit.each (keys, function (p)
+            {
+                var arr = self[p];
+
+                arr.forEach (function (a) { a._name = nit.kababCase (a.name); });
+                arr.sort (function (a, b) { return nit.sort.COMPARATORS.string (a._name, b._name); });
+                arr.forEach (function (a) { delete a._name; });
+            });
+
+            return self;
+        })
         .method ("toJson", function (indent)
         {
-            return nit.toJson (this.toPojo (), indent);
+            return nit.toJson (this.sort ().toPojo (), indent);
         })
     ;
 };
