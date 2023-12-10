@@ -39,12 +39,12 @@
             </div>
         </div>
         <script src="/lib/nit.js"></script>
-        {%# service.socketIo %}
+        {%# host.lookupService ("http.services.SocketIo") %}
         <script src="{% path %}/socket.io.min.js"></script>
         <script src="/lib/http/SocketIoClient.js"></script>
-        <script>nit.config ("http.SocketIoClient.path", "{% service.socketIo.path %}")</script>
+        <script>nit.config ("http.SocketIoClient.path", "{% path %}")</script>
         {%/%}
-        {%#? service.liveReloadEnabled %}
+        {%# host.lookupService ("http.services.LiveReload") %}
         <script src="/lib/http/LiveReload.js"></script>
         {%/%}
     </body>

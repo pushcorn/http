@@ -513,7 +513,8 @@ test.method ("http", "selectApplicableObject", true)
             [
                 [[new s.Service1, new s.Service2], "dashboard.pushcorn.com"],
                 [[new s.Service1, new s.Service2], http.Context.new ({ headers: { host: "dashboard.pushcorn.com" } })],
-                [[new s.Service1, new s.Service2], { headers: { host: "dashboard.pushcorn.com" } }]
+                [[new s.Service1, new s.Service2], { headers: { host: "dashboard.pushcorn.com" } }],
+                [[new s.Service1, new s.Service2], nit.new ("http.mocks.IncomingMessage", "GET", "/sio", { headers: { host: "dashboard.pushcorn.com" } })]
             ];
         })
         .returnsResultOfExpr ("args[0][1]")
