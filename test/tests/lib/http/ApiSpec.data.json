@@ -2,8 +2,8 @@
   "apis": [
     {
       "name": "http.apis.GetApiSpec",
-      "method": "GET",
-      "path": "/",
+      "requestMethod": "GET",
+      "requestPath": "/",
       "description": "Get the API specification.",
       "responses": [
         "http.responses.ApiSpecReturned"
@@ -11,14 +11,14 @@
     },
     {
       "name": "myapp.apis.AutoPath",
-      "method": "GET",
-      "path": "/myapp/auto-path",
+      "requestMethod": "GET",
+      "requestPath": "/myapp/auto-path",
       "description": "Description not available."
     },
     {
       "name": "myapp.apis.CheckIn",
-      "method": "POST",
-      "path": "/check-ins",
+      "requestMethod": "POST",
+      "requestPath": "/check-ins",
       "description": "Check-in your location.",
       "request": {
         "parameters": [
@@ -29,8 +29,7 @@
           },
           {
             "spec": "<location>",
-            "type": "myapp.apis.CheckIn.Request.Location",
-            "source": "form"
+            "type": "myapp.apis.CheckIn.Request.Location"
           }
         ]
       },
@@ -41,8 +40,8 @@
     },
     {
       "name": "myapp.apis.GetBlob",
-      "method": "POST",
-      "path": "/blobs",
+      "requestMethod": "POST",
+      "requestPath": "/blobs",
       "description": "Get the blob!",
       "request": {
         "parameters": [
@@ -60,8 +59,8 @@
     },
     {
       "name": "myapp.apis.Hello",
-      "method": "GET",
-      "path": "/hello",
+      "requestMethod": "GET",
+      "requestPath": "/hello",
       "description": "Say Hello!",
       "request": {
         "parameters": [
@@ -229,11 +228,11 @@
           "type": "string"
         },
         {
-          "spec": "[method]",
+          "spec": "[requestMethod]",
           "type": "string?"
         },
         {
-          "spec": "[path]",
+          "spec": "[requestPath]",
           "type": "string?"
         },
         {

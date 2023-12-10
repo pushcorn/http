@@ -20,6 +20,15 @@ test.object ("http.services.SocketIo")
 ;
 
 
+test.method ("http.services.SocketIo", "applicableTo")
+    .should ("return false if it shouldHandleRequest returns false")
+        .givenContext ()
+        .mock ("object", "shouldHandleRequest", () => false)
+        .returns (false)
+        .commit ()
+;
+
+
 test.method ("http.services.SocketIo", "shouldHandleRequest")
     .should ("return %{result} if (path, req.path) = (%{createArgs.1}, %{args[0].path}")
         .up (s => s.createArgs = "/sio")
@@ -222,11 +231,13 @@ test.method ("http.services.SocketIo", "preUpgrade")
 
 test.method ("http.services.SocketIo", "start")
     .should ("set up the IO engine")
-        .before (s =>
+        .before (async (s) =>
         {
             s.object.host = {};
             s.object.host.server = {};
             s.object.host.server.nodeServer = new s.NodeHttpServer;
+
+            await s.object.preStart ();
         })
         .after (async (s) =>
         {

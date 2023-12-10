@@ -3,8 +3,8 @@
     "apis": [
       {
         "name": "http.apis.GetApiSpec",
-        "method": "GET",
-        "path": "/",
+        "requestMethod": "GET",
+        "requestPath": "/",
         "description": "Get the API specification.",
         "responses": [
           "http.responses.ApiSpecReturned"
@@ -50,11 +50,11 @@
             "type": "string"
           },
           {
-            "spec": "[method]",
+            "spec": "[requestMethod]",
             "type": "string?"
           },
           {
-            "spec": "[path]",
+            "spec": "[requestPath]",
             "type": "string?"
           },
           {

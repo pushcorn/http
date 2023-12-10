@@ -51,7 +51,7 @@ test.task ("http:invoke-api")
             contentType: "application/json",
             headers:
             {
-                'x-response-name': 'HelloMessageReturned',
+                'x-response-name': 'myapp.responses.HelloMessageReturned',
                 'content-type': 'application/json',
                 'content-length': '33',
                 etag: '"ULulLvzruKc0n8EQ_BaQBzguiRsLAuKGXQsr76hDeYA-11"',
@@ -64,7 +64,7 @@ test.task ("http:invoke-api")
                 message: 'Hello Mr. John Doe!'
             }
         })
-        .expectingPropertyToBe ("result2.headers.x-response-name", "ValidationFailed")
+        .expectingPropertyToBe ("result2.headers.x-response-name", "http.responses.ValidationFailed")
         .commit ()
 
     .should ("handle the form params for a POST request")

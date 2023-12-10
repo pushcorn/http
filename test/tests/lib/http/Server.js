@@ -806,7 +806,7 @@ test.method ("http.Server", "start")
 test.object ("http.Server")
     .should ("shutdown the server if shutdown event was fired")
         .up (() => nit.SHUTDOWN_EVENTS.push ("SHUTDOWN"))
-        .up (s => s.createArgs = { port: 0, stopTimeout: 0 })
+        .given ({ port: 0, stopTimeout: 0 })
         .after (s => s.instance.start ())
         .after (async () =>
         {
@@ -829,7 +829,6 @@ test.object ("http.Server")
         .application ()
         .given ({ port: 0, stopTimeout: 0 })
         .mock ("result", "info")
-        // .mock ("server", "info")
         .after (async (s) =>
         {
             nit.ASSET_PATHS.unshift (s.app.root.path);

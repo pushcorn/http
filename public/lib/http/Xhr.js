@@ -122,10 +122,11 @@ module.exports = function (nit, global, http, Self)
             var method = req.method;
             var url = req.url;
             var reqType;
+            var def = self.deferred;
 
             if (self.sent)
             {
-                return self.deferred.promise;
+                return def.promise;
             }
 
             req.xhr = writer.value (self);
@@ -161,14 +162,7 @@ module.exports = function (nit, global, http, Self)
 
             function rejectWithError (code)
             {
-                try
-                {
-                    self.throw (code);
-                }
-                catch (e)
-                {
-                    self.deferred.reject (e);
-                }
+                def.reject (nit.error.call (self, code));
             }
 
             xhr.onload = function ()
@@ -176,7 +170,7 @@ module.exports = function (nit, global, http, Self)
                 self.response = Self.Response.fromXhr (xhr);
                 self.response.request = writer.value (req);
 
-                self.deferred.resolve (self.response);
+                def.resolve (self.response);
             };
 
             xhr.onerror = function () { rejectWithError ("error.xhr_error"); };
@@ -186,7 +180,7 @@ module.exports = function (nit, global, http, Self)
             xhr.open (method, url);
             xhr.send (data);
 
-            return self.deferred.promise;
+            return def.promise;
         })
     ;
 };

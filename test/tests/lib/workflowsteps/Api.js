@@ -36,7 +36,7 @@ test.workflowStep ("workflowsteps.Api")
             "statusMessage": "The hello message has been returned.",
             "headers":
             {
-                "x-response-name": "HelloMessageReturned",
+                "x-response-name": "myapp.responses.HelloMessageReturned",
                 "content-type": "application/json",
                 "content-length": "33",
                 "etag": "\"ULulLvzruKc0n8EQ_BaQBzguiRsLAuKGXQsr76hDeYA-11\"",
@@ -84,7 +84,7 @@ test.workflowStep ("workflowsteps.Api")
             statusCode: 200,
             statusMessage: 'The blob has been returned.',
             headers: {
-                'x-response-name': 'BlobReturned',
+                'x-response-name': 'myapp.responses.BlobReturned',
                 'content-type': 'application/octet-stream',
                 'content-length': '244',
                 connection: 'keep-alive',

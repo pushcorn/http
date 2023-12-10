@@ -21,8 +21,8 @@ test.method ("http.responses.View", "toBody")
             {
                 service: s.createService (
                 {
-                    assetResolvers: { roots: "resources/html" },
-                    templateLoaders: { extensions: ".html" }
+                    assetresolvers: { roots: "resources/html" },
+                    templateloaders: { extensions: ".html" }
                 })
             });
         })
@@ -40,8 +40,8 @@ test.method ("http.responses.View", "toBody")
             {
                 service: s.createService (
                 {
-                    assetResolvers: { roots: "resources/html" },
-                    templateLoaders: { extensions: ".html" }
+                    assetresolvers: { roots: "resources/html" },
+                    templateloaders: { extensions: ".html" }
                 })
             });
         })
@@ -111,8 +111,8 @@ test.method ("http.responses.View", "toBody")
             {
                 service: s.createService (
                 {
-                    assetResolvers: { roots: "resources/html" },
-                    templateLoaders: { extensions: ".html" }
+                    assetresolvers: { roots: "resources/html" },
+                    templateloaders: { extensions: ".html" }
                 })
             });
 

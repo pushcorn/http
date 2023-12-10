@@ -28,13 +28,15 @@ test.method ("http.mocks.Socket", "setTimeout")
 test.method ("http.mocks.Socket", "end")
     .should ("end the socket and invoke the callback if available")
     .given (function cb () { cb.called = true; })
-    .before (function ()
+    .before (s =>
     {
-        this.object.on ("end", nit.noop);
-        this.object.on ("close", nit.noop);
+        s.object.on ("end", nit.noop);
+        s.object.on ("close", nit.noop);
+
+        s.obj = s.object;
     })
-    .spy ("object.listeners", "end")
-    .spy ("object.listeners", "close")
+    .spy ("obj.listeners", "end")
+    .spy ("obj.listeners", "close")
     .returnsInstanceOf ("http.mocks.Socket")
     .expectingPropertyToBe ("object.ended", true)
     .expectingPropertyToBe ("args.0.called", true)

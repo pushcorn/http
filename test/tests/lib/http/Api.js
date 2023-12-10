@@ -37,7 +37,7 @@ test.method ("http.Api", "info", true)
 ;
 
 
-test.method ("http.Api", "preInit")
+test.method ("http.Api", "postNsInvoke", true)
     .should ("skip if the request has no parameters")
         .up (s => s.class = s.class.defineSubclass ("MyApi"))
         .expectingPropertyToBe ("class.responses.length", 0)
@@ -51,6 +51,21 @@ test.method ("http.Api", "preInit")
             {
                 Request.parameter ("name", "string");
             });
+        })
+        .expectingPropertyToBe ("class.responses.length", 1)
+        .expectingPropertyToBe ("class.responses.0.name", "http.responses.ValidationFailed")
+        .commit ()
+
+    .should ("skip if the ValidationFailed response has been added")
+        .up (s => s.class = s.class.defineSubclass ("MyApi"))
+        .before (s =>
+        {
+            s.class.defineRequest (Request =>
+            {
+                Request.parameter ("name", "string");
+            });
+
+            s.class.response ("http.responses.ValidationFailed");
         })
         .expectingPropertyToBe ("class.responses.length", 1)
         .expectingPropertyToBe ("class.responses.0.name", "http.responses.ValidationFailed")
@@ -145,14 +160,11 @@ test.method ("http.Api", "catch")
 test.compgenCompleter ("http.Api.compgencompleters.Completer")
     .should ("generate the available API names")
         .project ("myapp", true)
-        .given (
+        .given ({ completionType: "type" })
+        .before (s => s.context.currentOption =
         {
-            completionType: "type",
-            currentOption:
-            {
-                spec: "<api>",
-                type: "api"
-            }
+            spec: "<api>",
+            type: "api"
         })
         .returns (["VALUE", "myapp:auto-path", "myapp:check-in", "myapp:get-blob", "myapp:hello", "http:get-api-spec"])
         .commit ()

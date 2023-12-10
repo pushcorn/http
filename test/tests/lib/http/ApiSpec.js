@@ -1,14 +1,34 @@
 test.object ("http.ApiSpec")
     .should ("create a spec from an API")
-    .project ("myapp", true)
-    .up (s =>
-    {
-        s.args = { apis: nit.listComponents ("apis").map (c => new c.class) };
-    })
-    .after (s => s.result.sort ())
-    .expectingPropertyJsonToBe ("result", __filename)
-    .commit ()
+        .project ("myapp", true)
+        .up (s =>
+        {
+            s.args = { apis: nit.listComponents ("apis").map (c => new c.class) };
+        })
+        .after (s => s.result.sort ())
+        .expectingPropertyJsonToBe ("result", __filename)
+        .commit ()
+
+    .should ("throw if there is a request path conflict")
+        .up (s => s.args =
+        {
+            apis:
+            [
+            {
+                name: "DoThis",
+                requestPath: "/do-something"
+            }
+            ,
+            {
+                name: "DoThat",
+                requestPath: "/do-something"
+            }
+            ]
+        })
+        .throws ("error.endpoint_conflict")
+        .commit ()
 ;
+
 
 
 test.method ("http.ApiSpec.Constraint", "nit.Object.caster", true)

@@ -21,10 +21,6 @@ module.exports = function (nit, http, Self)
 
                     return cls;
                 })
-                .method ("toJson", function (indent)
-                {
-                    return nit.toJson (this.toPojo (), indent);
-                })
             ;
         })
         .defineSpec ("Constraint", function (Constraint)
@@ -140,10 +136,6 @@ module.exports = function (nit, http, Self)
             });
 
             return self;
-        })
-        .method ("toJson", function (indent)
-        {
-            return nit.toJson (this.sort ().toPojo (), indent);
         })
     ;
 };

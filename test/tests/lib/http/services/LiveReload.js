@@ -8,6 +8,14 @@ test.object ("http.services.LiveReload")
 ;
 
 
+test.method ("http.services.LiveReload", "applicableTo")
+    .should ("always return false")
+        .givenContext ()
+        .returns (false)
+        .commit ()
+;
+
+
 test.method ("http.services.LiveReload", "postStart")
     .should ("throw if the SocketIo service was not enabled")
         .before (s =>

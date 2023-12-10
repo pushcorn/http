@@ -92,7 +92,7 @@ test.method ("http.Service", "dispatch")
 
             const Action1 = s.http.defineAction ("Action1", true);
 
-            s.createArgs = { path: "/test", apis: [new Api1, new Api2], actions: new Action1 };
+            s.createArgs = { mountPoint: "/test", apis: [new Api1, new Api2], actions: new Action1 };
         })
         .expectingPropertyToBe ("handledBy", "Api2")
         .commit ()
@@ -121,7 +121,7 @@ test.method ("http.Service", "dispatch")
 
             const Action1 = s.http.defineAction ("Action1", true);
 
-            s.createArgs = { path: "/test", apis: [new Api1, new Api2], actions: new Action1 };
+            s.createArgs = { mountPoint: "/test", apis: [new Api1, new Api2], actions: new Action1 };
         })
         .expectingPropertyToBe ("handledBy", undefined)
         .commit ()
@@ -414,7 +414,7 @@ test.method ("http.Service", "applicableTo")
         .up (s =>
         {
             s.class = s.class.defineSubclass ("MyService");
-            s.createArgs = { path: "/my" };
+            s.createArgs = { mountPoint: "/my" };
         })
         .given (Context.new ("GET", "/your/data"))
         .returns (false)
