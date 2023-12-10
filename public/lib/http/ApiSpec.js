@@ -7,7 +7,7 @@ module.exports = function (nit, http, Self)
             Spec
                 .staticMethod ("emptyToUndef", function (v)
                 {
-                    return nit.is.empty.nested (v instanceof nit.Object ? v.toPojo () : v) ? undefined : v;
+                    return nit.is.empty.nested (nit.val (v)) ? undefined : v;
                 })
                 .staticMethod ("field", function ()
                 {
@@ -93,8 +93,8 @@ module.exports = function (nit, http, Self)
         {
             Api
                 .field ("<name>", "string")
-                .field ("[method]", "string?")
-                .field ("[path]", "string?")
+                .field ("[requestMethod]", "string?")
+                .field ("[requestPath]", "string?")
                 .field ("[description]", "string?")
                 .field ("request", Self.Request.name + "?", { backref: "api" })
                 .field ("responses...", "string?")
@@ -110,9 +110,9 @@ module.exports = function (nit, http, Self)
 
                 self.apis.forEach (function (a)
                 {
-                    if (a.path == api.path && a.method == api.method && a.name != api.name)
+                    if (a.requestPath == api.requestPath && a.requestMethod == api.requestMethod && a.name != api.name)
                     {
-                        self.throw ("error.endpoint_conflict", { endpoint: a.method + " " + a.path, api: api.name, owner: a.name });
+                        self.throw ("error.endpoint_conflict", { endpoint: a.requestMethod + " " + a.path, api: api.name, owner: a.name });
                     }
                 });
             }

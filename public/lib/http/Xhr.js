@@ -1,4 +1,4 @@
-module.exports = function (nit, global, Self)
+module.exports = function (nit, global, http, Self)
 {
     var writer = new nit.Object.Property.Writer;
 
@@ -7,9 +7,7 @@ module.exports = function (nit, global, Self)
         .m ("error.xhr_abort", "The request is aborted.")
         .m ("error.xhr_error", "The request failed due to an error.")
         .m ("error.xhr_timeout", "The request has timed out.")
-
         .constant ("METHODS", ["GET", "PUT", "POST", "PATCH", "DELETE", "HEAD", "OPTIONS"])
-        .constant ("METHODS_WITHOUT_REQUEST_BODY", ["GET", "DELETE", "HEAD"])
 
         .defineInnerClass ("Request", function (Request)
         {
@@ -36,7 +34,7 @@ module.exports = function (nit, global, Self)
 
                 .getter ("ok", function ()
                 {
-                    return this.status >= 200 && this.status < 300;
+                    return ~~(this.status / 100) == 2;
                 })
                 .staticMethod ("fromXhr", function (xhr)
                 {
@@ -145,7 +143,7 @@ module.exports = function (nit, global, Self)
 
             if (!nit.is.empty (data))
             {
-                if (~Self.METHODS_WITHOUT_REQUEST_BODY.indexOf (method))
+                if (~http.METHODS_WITHOUT_REQUEST_BODY.indexOf (method))
                 {
                     data = nit.uriEncode (data);
                     url = url.replace (/\?+$/, "");

@@ -33,7 +33,7 @@ nit.test.Strategy
     {
         let v = nit.get (this, property);
 
-        return this.writeDataForFile (nit.toJson (v instanceof nit.Object ? v.toPojo () : v, "  "), filename, ext);
+        return this.writeDataForFile (nit.toJson (nit.val (v), "  "), filename, ext);
     })
     .method ("writeDataForFile", function (data, filename, ext)
     {
@@ -146,7 +146,7 @@ nit.test.Strategy
             {
                 let v = nit.get (self, property);
 
-                return nit.toJson (v instanceof nit.Object ? v.toPojo () : v, "  ");
+                return nit.toJson (nit.val (v), "  ");
             }
         );
 

@@ -15,7 +15,7 @@ module.exports = function (nit, http)
                     ;
                 })
                 .form ("<userId>", "string")
-                .form ("<location>", Request.Location.name)
+                .parameter ("<location>", Request.Location.name)
             ;
         })
         .onRun (ctx =>
