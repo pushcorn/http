@@ -46,7 +46,7 @@ module.exports = function (nit, http, Self)
                             var d = params[s] = params[s] || {};
                             var v = self[p.name];
 
-                            d[p.name] = nit.val (v);
+                            d[p.name] = nit.toPojo (v);
                         });
 
                         return params;
@@ -91,27 +91,31 @@ module.exports = function (nit, http, Self)
                     Subclass.defineRequest ();
                     Subclass.defineContext ();
                 })
-                .onConfigureQueueForSend (function (queue, api, args)
+                .configureComponentMethods ("send", function (Queue)
                 {
-                    var apiClass = api.constructor;
-                    var clientClass = apiClass.outerClass;
-                    var requestClass = apiClass.Request;
-                    var contextClass = apiClass.Context;
-                    var ctx = args[0];
-
-                    ctx = ctx instanceof contextClass ? ctx : nit.new (contextClass, { request: nit.new (requestClass, args) });
-                    ctx.api = api;
-
-                    args.splice (0, args.length, ctx);
-
-                    queue
-                        .before ("send.invokeHook", "send.validateRequest", function ()
+                    Queue
+                        .onInit (function (api)
                         {
-                            return requestClass.validate (ctx.request);
+                            var apiClass = api.constructor;
+                            var requestClass = apiClass.Request;
+                            var contextClass = apiClass.Context;
+                            var args = this.args;
+                            var ctx = args[0];
+
+                            ctx = ctx instanceof contextClass ? ctx : nit.new (contextClass, { request: nit.new (requestClass, args) });
+                            ctx.api = api;
+
+                            this.args = ctx;
                         })
-                        .after ("send.invokeHook", "send.sendRequest", function ()
+                        .before ("send.invokeHook", "send.validateRequest", function (api, ctx)
+                        {
+                            return api.constructor.Request.validate (ctx.request);
+                        })
+                        .after ("send.invokeHook", "send.sendRequest", function (api, ctx)
                         {
                             var params = ctx.request.toParams ();
+                            var apiClass = api.constructor;
+                            var clientClass = apiClass.outerClass;
                             var url = clientClass.url + apiClass.pathParser.build (params.path);
 
                             if (params.query)
@@ -128,10 +132,12 @@ module.exports = function (nit, http, Self)
                                 data: params.form
                             });
                         })
-                        .before ("postSend.invokeHook", "postSend.buildResponse", function (c)
+                        .before ("postSend.invokeHook", "postSend.buildResponse", function (api, ctx)
                         {
-                            var res = ctx.res = c.result;
+                            var res = ctx.res = this.result;
                             var responseName = res.headers["X-Response-Name"];
+                            var apiClass = api.constructor;
+                            var clientClass = apiClass.outerClass;
                             var responseClass = nit.get (clientClass, responseName);
 
                             if (!responseClass)
@@ -141,9 +147,11 @@ module.exports = function (nit, http, Self)
 
                             ctx.response = new responseClass (res.result);
                         })
-                        .failure (function (c)
+                        .onFailure (function (api, ctx)
                         {
-                            var error = c.error;
+                            var error = this.error;
+                            var apiClass = api.constructor;
+                            var clientClass = apiClass.outerClass;
                             var code = error.code = error.code || "error.unexpected_error";
                             var responseClass = nit.find.result (clientClass.spec.responses, function (r) { if (r.code == code) { return nit.get (clientClass, r.name); } }) || Self.UnexpectedErrorOccurred;
                             var violations = nit.get (error, "context.validationContext.violations", []);
@@ -151,10 +159,10 @@ module.exports = function (nit, http, Self)
                             ctx.response = new responseClass (
                             {
                                 error: error,
-                                violations: nit.val (violations)
+                                violations: nit.toPojo (violations)
                             });
                         })
-                        .complete (function ()
+                        .onComplete (function (api, ctx)
                         {
                             return ctx;
                         })
@@ -247,7 +255,7 @@ module.exports = function (nit, http, Self)
             var clientClass = this;
             var pp = targetClass.PRIMARY_PROPERTY_TYPE.split (".").pop ().toLowerCase ();
 
-            targetClass[pp] (nit.omit (nit.val (prop), "constraints"));
+            targetClass[pp] (nit.omit (nit.toPojo (prop), "constraints"));
 
             var field = targetClass.getLastField ();
 
@@ -258,7 +266,7 @@ module.exports = function (nit, http, Self)
 
             nit.each (prop.constraints, function (c)
             {
-                c = nit.val (c);
+                c = nit.toPojo (c);
 
                 try
                 {

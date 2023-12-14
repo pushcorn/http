@@ -103,7 +103,7 @@ test.method ("http.Api", "run")
 ;
 
 
-test.method ("http.Api", "postRun")
+test.method ("http.Api", "run")
     .should ("skip if the allowed response was not specified")
         .up (s => s.class = s.class.defineSubclass ("MyApi"))
         .given (Context.new ("GET", "/"))
@@ -111,7 +111,7 @@ test.method ("http.Api", "postRun")
         {
             s.args[0].noop ();
         })
-        .returns ()
+        .returnsResultOfExpr ("args.0")
         .commit ()
 ;
 

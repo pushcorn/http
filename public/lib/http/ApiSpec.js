@@ -7,7 +7,7 @@ module.exports = function (nit, http, Self)
             Spec
                 .staticMethod ("emptyToUndef", function (v)
                 {
-                    return nit.is.empty.nested (nit.val (v)) ? undefined : v;
+                    return nit.is.empty.nested (nit.toPojo (v)) ? undefined : v;
                 })
                 .staticMethod ("field", function ()
                 {
