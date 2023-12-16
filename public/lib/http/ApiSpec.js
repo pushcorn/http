@@ -100,21 +100,27 @@ module.exports = function (nit, http, Self)
         .field ("apis...", Self.Api.name,
         {
             backref: "spec",
+            deferred: true,
             onLink: function (api)
             {
                 var self = this;
 
                 self.apis.forEach (function (a)
                 {
-                    if (a.requestPath == api.requestPath && a.requestMethod == api.requestMethod && a.name != api.name)
+                    var ma = nit.coalesce (a.requestMethod, "GET");
+                    var mb = nit.coalesce (api.requestMethod, "GET");
+                    var pa = nit.coalesce (a.requestPath, "/");
+                    var pb = nit.coalesce (api.requestPath, "/");
+
+                    if (pa == pb && ma == mb && a.name != api.name)
                     {
-                        self.throw ("error.endpoint_conflict", { endpoint: a.requestMethod + " " + a.path, api: api.name, owner: a.name });
+                        self.throw ("error.endpoint_conflict", { endpoint: ma + " " + pa, api: api.name, owner: a.name });
                     }
                 });
             }
         })
-        .field ("responses...", Self.Response.name, { backref: "spec" })
-        .field ("models...", Self.Model.name, { backref: "spec" })
+        .field ("responses...", Self.Response.name, { backref: "spec", deferred: true })
+        .field ("models...", Self.Model.name, { backref: "spec", deferred: true })
 
         .method ("sort", function ()
         {
