@@ -194,7 +194,7 @@ test.method ("http.services.SocketIo", "preStop")
 ;
 
 
-test.method ("http.services.SocketIo", "preUpgrade")
+test.method ("http.services.SocketIo", "upgrade")
     .should ("upgrade the request if possible")
         .up (s => s.args = s.IncomingMessage ("GET", "/socket.io/ab"))
         .up (s => s.io = new s.class.SocketIo.Server (new s.NodeHttpServer))
