@@ -19,8 +19,7 @@ test.command ("http.commands.Server")
         {
             port: 0,
             stopTimeout: 0,
-            root: ".",
-            dev: false
+            root: "."
         })
         .after (async (s) =>
         {
