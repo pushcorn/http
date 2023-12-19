@@ -14,6 +14,24 @@ test.plugin ("http:api-adapter", "run")
         .throws ("error.lifecycle_hook_not_implemented")
         .commit ()
 
+    .should ("send the text response if the result is a string")
+        .init (s => s.called = [])
+        .init (s => s.hostClass = s.http.defineApi ("MyApi"))
+        .init (s => s.hostClassName = "")
+        .up (s => s.hostClass
+            .onRunTarget (() =>
+            {
+                s.called.push ("runMyApi");
+
+                return "OK";
+            })
+        )
+        .givenContext ()
+        .expectingPropertyToBeOfType ("result.response", "http.responses.Text")
+        .expectingPropertyToBe ("result.response.text", "OK")
+        .expectingPropertyToBe ("called", ["runMyApi"])
+        .commit ()
+
     .should ("send the JSON response if the result is not text")
         .init (s => s.called = [])
         .init (s => s.hostClass = s.http.defineApi ("MyApi"))

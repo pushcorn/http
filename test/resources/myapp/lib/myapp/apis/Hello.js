@@ -1,7 +1,7 @@
 module.exports = function (nit, http)
 {
     return http.defineApi ("myapp.apis.Hello")
-        .info ("Say Hello!")
+        .describe ("Say Hello!")
         .endpoint ("GET", "/hello")
         .defineRequest (Request =>
         {

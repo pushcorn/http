@@ -233,8 +233,8 @@ test.method ("http.services.SocketIo", "start")
     .should ("set up the IO engine")
         .before (async (s) =>
         {
-            s.object.host = {};
-            s.object.host.server = {};
+            s.object.host = new s.http.Host;
+            s.object.host.server = new s.http.Server;
             s.object.host.server.nodeServer = new s.NodeHttpServer;
 
             await s.object.preStart ();

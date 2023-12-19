@@ -204,7 +204,7 @@ test.method ("http.Context", "readRequest",
         .expectingPropertyToBe ("object.formParams", { a: 9 })
         .expectingPropertyToBeOfType ("object.request", "UserRequest")
         .expectingPropertyToBe ("object.request.id", "123")
-        .expectingMethodToReturnValue ("object.readRequest", null, s => s.object.request)
+        .expectingMethodToReturnValue ("object.readRequest")
         .commit ()
 ;
 

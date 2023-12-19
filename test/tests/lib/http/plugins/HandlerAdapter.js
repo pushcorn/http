@@ -58,11 +58,27 @@ test.plugin ("http:handler-adapter", "run")
             .onRunTarget (() =>
             {
                 s.called.push ("runMyHandler");
+
+                return "DATA";
             })
-            .onSendResult ((result, ctx) => ctx.sendData ("DATA"))
         )
         .givenContext ()
-        .expectingPropertyToBeOfType ("result.response", "http.responses.Data")
+        .expectingPropertyToBeOfType ("result.response", "http.responses.Text")
+        .expectingPropertyToBe ("called", ["runMyHandler"])
+        .commit ()
+
+    .should ("NOT set the response if result is undef")
+        .init (s => s.called = [])
+        .init (s => s.hostClass = s.http.defineHandler ("MyHandler"))
+        .init (s => s.hostClassName = "")
+        .up (s => s.hostClass
+            .onRunTarget (() =>
+            {
+                s.called.push ("runMyHandler");
+            })
+        )
+        .givenContext ()
+        .expectingPropertyToBe ("result.response")
         .expectingPropertyToBe ("called", ["runMyHandler"])
         .commit ()
 ;

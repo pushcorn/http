@@ -1,7 +1,7 @@
 module.exports = function (nit, http)
 {
     return http.defineApi ("myapp.apis.GetBlob")
-        .info ("Get the blob!")
+        .describe ("Get the blob!")
         .endpoint ("POST", "/blobs")
         .defineRequest (Request =>
         {

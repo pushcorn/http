@@ -28,7 +28,7 @@ test.method ("http.Api.Context", "respond")
 ;
 
 
-test.method ("http.Api", "info", true)
+test.method ("http.Api", "describe", true)
     .should ("set the description meta data")
         .up (s => s.class = s.class.defineSubclass ("MyApi"))
         .given ("find users")
@@ -112,6 +112,30 @@ test.method ("http.Api", "run")
             s.args[0].noop ();
         })
         .returnsResultOfExpr ("args.0")
+        .commit ()
+;
+
+
+test.method ("http.Api", "run")
+    .should ("not send hook result if no response was specified")
+        .up (s => s.class = s.class.defineSubclass ("MyApi")
+            .onRun (() => nit.o ({ a: 1 }))
+        )
+        .given (Context.new ("GET", "/"))
+        .expectingPropertyToBe ("args.0.response")
+        .commit ()
+
+    .should ("set the response if the hook returns a value")
+        .up (s => s.class = s.class.defineSubclass ("MyApi")
+            .response ("http:json")
+            .onRun (() => nit.o ({ a: 1 }))
+        )
+        .given (Context.new ("GET", "/"))
+        .expectingPropertyToBe ("args.0.response",
+        {
+            contentType: "application/json",
+            json: { a: 1 }
+        })
         .commit ()
 ;
 

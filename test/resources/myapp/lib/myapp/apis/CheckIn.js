@@ -1,7 +1,7 @@
 module.exports = function (nit, http)
 {
     return http.defineApi ("myapp.apis.CheckIn")
-        .info ("Check-in your location.")
+        .describe ("Check-in your location.")
         .endpoint ("POST", "/check-ins")
         .response ("myapp:CheckInRecorded")
         .defineRequest (Request =>
