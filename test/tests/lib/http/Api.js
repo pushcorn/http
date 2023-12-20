@@ -160,7 +160,7 @@ test.method ("http.Api", "catch")
             }
         })
         .expectingPropertyToBeOfType ("args.0.response", "http.responses.ValidationFailed")
-        .expectingPropertyToBe ("args.0.error", undefined)
+        .expectingPropertyToBeOfType ("args.0.error", Error)
         .commit ()
 
     .should ("skip if the error code is not error.model_validation_failed")
@@ -177,6 +177,17 @@ test.method ("http.Api", "catch")
         .given (Context.new ("GET", "/", null, { error: nit.assign (new Error ("ERR"), { code: "error.invalid_value" }) }))
         .returns ()
         .expectingPropertyToBeOfType ("args.0.response", "MyApi.InvalidValue")
+        .commit ()
+
+    .should ("cast the integer error to the response of with same error status")
+        .up (s => s.class = s.class.defineSubclass ("MyApi"))
+        .up (s => s.class.defineResponse ("ItemNotFound", ItemNotFound =>
+        {
+            ItemNotFound.meta ("status", 404);
+        }))
+        .given (Context.new ("GET", "/", null, { error: 404 }))
+        .returns ()
+        .expectingPropertyToBeOfType ("args.0.response", "MyApi.ItemNotFound")
         .commit ()
 ;
 

@@ -87,11 +87,12 @@ test.method ("http.Server", "trackSocketRequest")
     .should ("end the socket if there is no associated request when the server is stopped")
         .given (new MockIncomingMessage ("GET", "/users"), new MockServerResponse ())
         .returnsInstanceOf ("http.Server")
-        .after (function ()
+        .after (s =>
         {
-            this.args[1].listeners ("finish")[0] ();
+            s.requestCount = s.args[0].socket.requests.length;
+            s.args[1].listeners ("finish")[0] ();
         })
-        .expectingPropertyToBe ("args.0.socket.requests.length", 0)
+        .expectingPropertyToBe ("requestCount", 1)
         .expectingPropertyToBe ("args.0.socket.ended", true)
         .commit ()
 

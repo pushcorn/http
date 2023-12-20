@@ -813,3 +813,40 @@ test.method ("http.Context", "loadTemplate")
         .returns ()
         .commit ()
 ;
+
+
+test.method ("http.Context", "invoke")
+    .should ("try to invoke a function and log the error")
+        .up (s => s.createArgs =
+        {
+            req: new MockIncomingMessage ("GET", "/"),
+            res: new MockServerResponse,
+            server: new s.http.Server
+        })
+        .mock ("object.server", "error")
+        .given (() => nit.throw ("TEST_ERR"))
+        .expectingPropertyToBe ("mocks.0.invocations.0.args.0.message", "TEST_ERR")
+        .commit ()
+
+    .should ("try to invoke a function and return the result")
+        .up (s => s.createArgs =
+        {
+            req: new MockIncomingMessage ("GET", "/"),
+            res: new MockServerResponse,
+            server: new s.http.Server
+        })
+        .given (() => 10)
+        .returns (10)
+        .commit ()
+
+    .reset ()
+        .up (s => s.createArgs =
+        {
+            req: new MockIncomingMessage ("GET", "/"),
+            res: new MockServerResponse,
+            server: new s.http.Server
+        })
+        .given (() => 10, null, (e, v) => v * 2)
+        .returns (20)
+        .commit ()
+;
