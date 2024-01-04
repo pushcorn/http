@@ -30,7 +30,7 @@ test.object ("http.Server")
         {
             this.result.info (this.result.logFormat, Context.new ({ headers: { host: "app.pushcorn.com" } }));
         })
-        .mock (nit, "log")
+        .mock ("class.Logger.prototype", "writeLog")
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \[INFO\] \[app\.p\.c\]/)
         .commit ()
 
@@ -167,16 +167,16 @@ test.method ("http.Server", "stop")
         .returnsResultOfExpr ("object")
         .expectingPropertyToBe ("called",
         [
-            "preStopService",
-            "preStopHost",
             "preStopServer",
             "preStopPlugin",
-            "stopService",
+            "preStopHost",
             "stopHost",
-            "stopServer",
-            "stopPlugin",
+            "preStopService",
+            "stopService",
             "postStopService",
             "postStopHost",
+            "stopServer",
+            "stopPlugin",
             "postStopServer",
             "postStopPlugin"
         ])
@@ -214,10 +214,10 @@ test.method ("http.Server", "stop")
         .mock (process, "exit")
         .before (s => s.object.start ())
         .after (() => nit.sleep (50))
-        .returnsResultOfExpr ("object")
+        .returns ()
         .expectingPropertyToBeOfType ("object.sockets.1234", "http.mocks.Socket")
         .expectingPropertyToBe ("mocks.0.invocations.length", 1)
-        .expectingPropertyToBe ("mocks.1.invocations.length", 1)
+        .expectingPropertyToBe ("mocks.1.invocations.length", 2)
         .expectingPropertyToBe ("mocks.3.invocations.length", 1)
         .expectingPropertyToBe ("mocks.3.invocations.0.args.1.message", "cannot shutdown!")
         .commit ()
@@ -320,7 +320,7 @@ test.method ("http.Server", "dispatch")
 
             s.args = [ctx.req, ctx.res];
         })
-        .mock (nit, "log")
+        .mock ("class.Logger.prototype", "writeLog")
         .returnsInstanceOf ("http.Context")
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO\].*\[dashboard\.p\.c\].*404/)
         .expectingPropertyToBeOfType ("result.service", "http.services.MyService")
@@ -347,7 +347,7 @@ test.method ("http.Server", "dispatch")
             new MockIncomingMessage ("GET", "/users", { headers: { host: "dashboard.pushcorn.com" } }),
             new MockServerResponse ()
         )
-        .mock (nit, "log")
+        .mock ("class.Logger.prototype", "writeLog")
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO\] \[dashboard\.p\.c\].*404/)
         .commit ()
@@ -367,12 +367,12 @@ test.method ("http.Server", "dispatch")
 
             s.object.hosts = new MyHost ({ hostnames: "app.pushcorn.com" });
         })
-        .mock (nit, "log")
+        .mock ("class.Logger.prototype", "writeLog")
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO\].*\[app\.p\.c\].*403/)
         .expectingPropertyToBe ("result.response.constructor.name", "http.responses.Forbidden")
         .expectingPropertyToBe ("preDispatchCalled", true)
-        .expectingPropertyToBe ("postDispatchCalled", true)
+        .expectingPropertyToBe ("postDispatchCalled")
         .commit ()
 
     .should ("dispatch the request to the first matching host")
@@ -415,7 +415,7 @@ test.method ("http.Server", "dispatch")
 
             s.object.hosts = new MyHost;
         })
-        .mock (nit, "log")
+        .mock ("class.Logger.prototype", "writeLog")
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO\] \[dashboard\.p\.c\].*404/)
         .commit ()
@@ -433,7 +433,7 @@ test.method ("http.Server", "dispatch")
 
             s.object.hosts = new MyHost ({ hostnames: "app.pushcorn.com" });
         })
-        .mock (nit, "log")
+        .mock ("class.Logger.prototype", "writeLog")
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", /\[INFO\] \[app\.p\.c\].*429/)
         .expectingPropertyToBe ("result.response.constructor.name", "http.responses.TooManyRequests")
@@ -453,7 +453,7 @@ test.method ("http.Server", "dispatch")
             s.object.hosts = new MyHost ({ hostnames: "app.pushcorn.com" });
         })
         .mock ("object", "error")
-        .mock (nit, "log")
+        .mock ("class.Logger.prototype", "writeLog")
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "error.unexpected_error")
         .expectingPropertyToBe ("mocks.1.invocations.0.args.0", /\[INFO\] \[app\.p\.c\].*400/)
@@ -465,7 +465,7 @@ test.method ("http.Server", "dispatch")
             new MockServerResponse ()
         )
         .mock ("object", "error")
-        .mock (nit, "log")
+        .mock ("class.Logger.prototype", "writeLog")
         .mock ("http.Context.prototype", "writeResponse", () => { throw new Error ("WRITE_ERR"); })
         .returnsInstanceOf (http.Context)
         .expectingPropertyToBe ("mocks.0.invocations.0.args.0", "error.unexpected_error")
@@ -556,29 +556,29 @@ test.method ("http.Server", "start")
         [
             "preInitServer",
             "preInitPlugin",
-            "preInitHost",
-            "preInitService",
             "initServer",
             "initPlugin",
+            "preInitHost",
             "initHost",
+            "preInitService",
             "initService",
+            "postInitService",
+            "postInitHost",
             "postInitServer",
             "postInitPlugin",
-            "postInitHost",
-            "postInitService",
 
             "preStartServer",
             "preStartPlugin",
-            "preStartHost",
-            "preStartService",
             "startServer",
             "startPlugin",
+            "preStartHost",
             "startHost",
+            "preStartService",
             "startService",
-            "postStartServer",
-            "postStartPlugin",
+            "postStartService",
             "postStartHost",
-            "postStartService"
+            "postStartServer",
+            "postStartPlugin"
         ])
         .commit ()
 
@@ -606,7 +606,7 @@ test.method ("http.Server", "start")
         })
         .mock ("object", "info")
         .mock ("object", "error")
-        .returnsResultOfExpr ("object")
+        .returns ()
         .expectingPropertyToBe ("object.state", "stopped")
         .commit ()
 
@@ -807,6 +807,7 @@ test.method ("http.Server", "start")
 test.object ("http.Server")
     .should ("shutdown the server if shutdown event was fired")
         .up (() => nit.SHUTDOWN_EVENTS.push ("SHUTDOWN"))
+        .mock ("instance", "info")
         .given ({ port: 0, stopTimeout: 0 })
         .after (s => s.instance.start ())
         .after (async () =>
@@ -820,7 +821,6 @@ test.object ("http.Server")
             }
         })
         .after (s => s.instance.stop ())
-        .mock ("instance", "info")
         .commit ()
 ;
 
@@ -828,8 +828,9 @@ test.object ("http.Server")
 test.object ("http.Server")
     .should ("properly handle the requests")
         .application ()
+        .up (() => nit.SHUTDOWN_EVENTS.pop ())
         .given ({ port: 0, stopTimeout: 0 })
-        .mock ("result", "info")
+        .mock ("instance", "info")
         .after (async (s) =>
         {
             nit.ASSET_PATHS.unshift (s.app.root.path);
@@ -852,7 +853,7 @@ test.object ("http.Server")
                 {
                     Request.parameter ("name", "string");
                 })
-                .onRun (ctx => ctx.respond (`Hello ${ctx.request.name}!`)) ()
+                .onRun (ctx => ctx.respond (`Hello ${ctx.request.name}!`))
             ;
 
             s.http.defineService ("Service1", "http.services.FileServer");
