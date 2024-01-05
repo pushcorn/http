@@ -6,7 +6,7 @@ test.method ("http.plugins.ApiAdapter", "usedBy")
 ;
 
 
-test.plugin ("http:api-adapter", "run")
+test.plugin ("http:api-adapter", "dispatch")
     .should ("throw if the runTarget hook was not implemented")
         .init (s => s.hostClass = s.http.defineApi ("MyApi"))
         .init (s => s.hostClassName = "")

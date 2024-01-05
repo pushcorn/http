@@ -6,7 +6,7 @@ test.method ("http.plugins.HandlerAdapter", "usedBy")
 ;
 
 
-test.plugin ("http:handler-adapter", "run")
+test.plugin ("http:handler-adapter", "dispatch")
     .should ("throw if the runTarget hook was not implemented")
         .init (s => s.hostClass = s.http.defineHandler ("MyHandler"))
         .init (s => s.hostClassName = "")

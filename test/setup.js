@@ -68,7 +68,10 @@ nit.test.Strategy
             xhr.status = result.statusCode;
             xhr.statusText = result.statusMessage;
             xhr.responseHeaders = result.headers;
-            xhr.responseText = await nit.readStream (result);
+            xhr.response = await result.buffer ();
+            xhr.responseText = result.isText ? xhr.response.toString ("utf8") : "";
+
+            return xhr.response;
         });
     })
     .method ("createServer", function (options)

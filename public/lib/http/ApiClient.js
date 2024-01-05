@@ -91,10 +91,10 @@ module.exports = function (nit, http, Self)
                     Subclass.defineRequest ();
                     Subclass.defineContext ();
                 })
-                .configureComponentMethods ("send", function (Queue)
+                .configureComponentMethod ("send", function (Method)
                 {
-                    Queue
-                        .onInit (function (api)
+                    Method
+                        .before ("initArgs", function (api)
                         {
                             var apiClass = api.constructor;
                             var requestClass = apiClass.Request;
@@ -140,14 +140,14 @@ module.exports = function (nit, http, Self)
                             var clientClass = apiClass.outerClass;
                             var responseClass = nit.get (clientClass, responseName);
 
-                            if (!responseClass)
+                            if (!nit.is.subclassOf (responseClass, Self.Response))
                             {
                                 clientClass.throw ("error.invalid_response_name", { name: responseName });
                             }
 
                             ctx.response = new responseClass (res.result);
                         })
-                        .onFailure (function (api, ctx)
+                        .beforeFailure ("castError", function (api, ctx)
                         {
                             var error = this.error;
                             var apiClass = api.constructor;
@@ -161,8 +161,10 @@ module.exports = function (nit, http, Self)
                                 error: error,
                                 violations: nit.toPojo (violations)
                             });
+
+                            this.error = null;
                         })
-                        .onComplete (function (api, ctx)
+                        .afterComplete (function (api, ctx)
                         {
                             return ctx;
                         })

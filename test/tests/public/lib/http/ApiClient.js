@@ -97,6 +97,7 @@ test.method ("http.ApiClient", "build", true)
         .expectingMethodToReturnValue ("helloResult.response.toPojo", null, { message: "Hello Jane Doe!" })
         .expectingMethodToReturnValue ("checkInResult.response.toPojo", null, {})
         .expectingPropertyToBe ("checkInResult.response.constructor.name", "MyApp2.myapp.responses.CheckInRecorded")
+        .expectingPropertyToBeOfType ("getBlobResult.response.content", "Buffer")
         .commit ()
 ;
 
