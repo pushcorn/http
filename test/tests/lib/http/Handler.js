@@ -68,7 +68,7 @@ test.method ("http.Handler", "endpoint", true)
 
 test.object ("http.Handler", false)
     .should ("add endpoint automatically when onDispatch () is defined but endpoint () was not called")
-        .project ("myapp")
+        .project ("myapp", true)
         .up (s => s.class = nit.lookupClass ("myapp.apis.AutoPath"))
         .expectingPropertyToBe ("class.requestMethod", "GET")
         .expectingPropertyToBe ("class.requestPath", "/myapp/auto-path")

@@ -1,4 +1,4 @@
-test.plugin ("http:api-command-adapter", "run")
+test.plugin ("http:api-command-adapter", "dispatch")
     .should ("run the adapated command")
         .project ("project-a", true, true)
         .init (s => s.hostClass = s.http.defineApi ("MyApi"))

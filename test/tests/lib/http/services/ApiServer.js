@@ -1,7 +1,7 @@
 const Context = nit.require ("http.Context");
 
 
-test.method ("http.services.ApiServer", "preInit")
+test.method ("http.services.ApiServer", "init")
     .should ("exclude the specified apis")
         .project ("myapp", true)
         .up (s =>
@@ -44,12 +44,8 @@ test.method ("http.services.ApiServer", "dispatch")
         .given (Context.new ("GET", "/api"))
         .before (async (s) =>
         {
-            await s.object.preInit ();
             await s.object.init ();
-            await s.object.postInit ();
-            await s.object.preStart ();
             await s.object.start ();
-            await s.object.postStart ();
         })
         .expectingPropertyToBeOfType ("args.0.response", "http.responses.ApiSpecReturned")
         .expectingPropertyJsonToBe ("args.0.response", __filename)
@@ -67,12 +63,8 @@ test.method ("http.services.ApiServer", "dispatch")
         })
         .before (async (s) =>
         {
-            await s.object.preInit ();
             await s.object.init ();
-            await s.object.postInit ();
-            await s.object.preStart ();
             await s.object.start ();
-            await s.object.postStart ();
         })
         .given (Context.new ("GET", "/api/hello?name=John&title=Mr."))
         .after (s => s.args[0].writeResponse ())
@@ -95,12 +87,8 @@ test.method ("http.services.ApiServer", "dispatch")
         })
         .before (async (s) =>
         {
-            await s.object.preInit ();
             await s.object.init ();
-            await s.object.postInit ();
-            await s.object.preStart ();
             await s.object.start ();
-            await s.object.postStart ();
         })
         .given (Context.new ("GET", "/api/hello2?name=Jane"))
         .expectingPropertyToBe ("args.0.responseHeaders.X-Response-Name", undefined)

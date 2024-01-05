@@ -276,7 +276,18 @@ test.method ("http.Service", "dispatch")
         })
         .given (Context.new ())
         .returnsResultOfExpr ("args.0")
-        .expectingPropertyToBe ("called", ["preDispatchService", "preDispatchPlugin"])
+        .expectingPropertyToBe ("called",
+        [
+            "preDispatchService",
+            "preDispatchPlugin",
+            "dispatchService",
+            "dispatchPlugin",
+            "preDispatchHandler",
+            "dispatchHandler",
+            "postDispatchHandler",
+            "postDispatchService",
+            "postDispatchPlugin"
+        ])
         .commit ()
 
     .should ("run the handler if the response was not set by the plugin")
@@ -320,7 +331,9 @@ test.method ("http.Service", "dispatch")
             "dispatchPlugin",
             "preDispatchHandler",
             "dispatchHandler",
-            "postDispatchHandler"
+            "postDispatchHandler",
+            "postDispatchService",
+            "postDispatchPlugin"
         ])
         .commit ()
 

@@ -1,4 +1,4 @@
-test.plugin ("http:handler-command-adapter", "run")
+test.plugin ("http:handler-command-adapter", "dispatch")
     .should ("run the adapated command")
         .project ("project-a", true, true)
         .init (s => s.hostClass = s.http.defineHandler ("MyHandler"))

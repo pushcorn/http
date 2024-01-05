@@ -1,4 +1,4 @@
-test.plugin ("http:handler-task-adapter", "run")
+test.plugin ("http:handler-task-adapter", "dispatch")
     .should ("run the adapated task")
         .project ("project-a", true, true)
         .init (s => s.hostClass = s.http.defineHandler ("MyHandler"))

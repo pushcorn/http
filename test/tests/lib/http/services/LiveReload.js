@@ -16,7 +16,7 @@ test.method ("http.services.LiveReload", "applicableTo")
 ;
 
 
-test.method ("http.services.LiveReload", "postStart")
+test.method ("http.services.LiveReload", "start")
     .should ("throw if the SocketIo service was not enabled")
         .before (s =>
         {
@@ -72,7 +72,7 @@ test.method ("http.services.LiveReload", "postStart")
 ;
 
 
-test.method ("http.services.LiveReload", "preStop")
+test.method ("http.services.LiveReload", "stop")
     .should ("stop the dir watcher")
         .before (s =>
         {

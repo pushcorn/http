@@ -47,7 +47,7 @@ test.command ("http.commands.Server")
         .commit ()
 
     .should ("use specifed config file")
-        .project ("myapp")
+        .project ("myapp", true)
         .given (
         {
             port: 0,

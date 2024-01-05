@@ -1,4 +1,4 @@
-test.plugin ("http:api-workflow-adapter", "run")
+test.plugin ("http:api-workflow-adapter", "dispatch")
     .should ("run the adapated workflow")
         .project ("project-a", true, true)
         .init (s => s.hostClass = s.http.defineApi ("MyApi")

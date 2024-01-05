@@ -1,4 +1,4 @@
-test.method ("http.apis.GetApiSpec", "run")
+test.method ("http.apis.GetApiSpec", "dispatch")
     .should ("return the API spec")
         .givenContext ()
         .before (async (s) =>
