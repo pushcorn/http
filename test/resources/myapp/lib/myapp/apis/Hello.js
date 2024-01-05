@@ -24,7 +24,7 @@ module.exports = function (nit, http)
             ;
         })
         .response ("myapp:HelloMessageReturned")
-        .onRun (ctx =>
+        .onDispatch (ctx =>
         {
             let { name, title } = ctx.request;
 

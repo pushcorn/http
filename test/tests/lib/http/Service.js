@@ -45,23 +45,17 @@ test.method ("http.Service", "dispatch")
         .given (Context.new ("GET", "/two"))
         .up (s =>
         {
-            const Api1 = s.http.defineApi ("Api1", true)
+            const Api1 = s.http.defineApi ("Api1")
                 .condition ("http:request-path", "/one")
-                .onRun (() =>
-                {
-                    s.handledBy = "Api1";
-                })
+                .onDispatch (() => s.handledBy = "Api1")
             ;
 
-            const Api2 = s.http.defineApi ("Api2", true)
+            const Api2 = s.http.defineApi ("Api2")
                 .condition ("http:request-path", "/two")
-                .onRun (() =>
-                {
-                    s.handledBy = "Api2";
-                })
+                .onDispatch (() => s.handledBy = "Api2")
             ;
 
-            const Action1 = s.http.defineAction ("Action1", true);
+            const Action1 = s.http.defineAction ("Action1");
 
             s.createArgs = { apis: [new Api1, new Api2], actions: new Action1 };
         })
@@ -74,23 +68,17 @@ test.method ("http.Service", "dispatch")
         {
             s.handledBy = undefined;
 
-            const Api1 = s.http.defineApi ("Api1", true)
+            const Api1 = s.http.defineApi ("Api1")
                 .condition ("http:request-path", "/one")
-                .onRun (() =>
-                {
-                    s.handledBy = "Api1";
-                })
+                .onDispatch (() => s.handledBy = "Api1")
             ;
 
-            const Api2 = s.http.defineApi ("Api2", true)
+            const Api2 = s.http.defineApi ("Api2")
                 .condition ("http:request-path", "/two")
-                .onRun (() =>
-                {
-                    s.handledBy = "Api2";
-                })
+                .onDispatch (() => s.handledBy = "Api2")
             ;
 
-            const Action1 = s.http.defineAction ("Action1", true);
+            const Action1 = s.http.defineAction ("Action1");
 
             s.createArgs = { mountPoint: "/test", apis: [new Api1, new Api2], actions: new Action1 };
         })
@@ -103,23 +91,17 @@ test.method ("http.Service", "dispatch")
         {
             s.handledBy = undefined;
 
-            const Api1 = s.http.defineApi ("Api1", true)
+            const Api1 = s.http.defineApi ("Api1")
                 .condition ("http:request-path", "/one")
-                .onRun (() =>
-                {
-                    s.handledBy = "Api1";
-                })
+                .onDispatch (() => s.handledBy = "Api1")
             ;
 
-            const Api2 = s.http.defineApi ("Api2", true)
+            const Api2 = s.http.defineApi ("Api2")
                 .condition ("http:request-path", "/two")
-                .onRun (() =>
-                {
-                    s.handledBy = "Api2";
-                })
+                .onDispatch (() => s.handledBy = "Api2")
             ;
 
-            const Action1 = s.http.defineAction ("Action1", true);
+            const Action1 = s.http.defineAction ("Action1");
 
             s.createArgs = { mountPoint: "/test", apis: [new Api1, new Api2], actions: new Action1 };
         })
@@ -155,20 +137,18 @@ test.method ("http.Service", "init")
             s.class.serviceplugin (new MyPlugin);
             s.createArgs = { handlers: new MyHandler };
         })
-        .before (s => s.object.preInit ())
-        .after (s => s.object.postInit ())
         .returnsResultOfExpr ("object")
         .expectingPropertyToBe ("called",
         [
             "preInitService",
             "preInitPlugin",
-            "preInitHandler",
             "initService",
             "initPlugin",
+            "preInitHandler",
             "initHandler",
+            "postInitHandler",
             "postInitService",
-            "postInitPlugin",
-            "postInitHandler"
+            "postInitPlugin"
         ])
         .commit ()
 ;
@@ -201,20 +181,18 @@ test.method ("http.Service", "start")
             s.class.serviceplugin (new MyPlugin);
             s.createArgs = { handlers: new MyHandler };
         })
-        .before (s => s.object.preStart ())
-        .after (s => s.object.postStart ())
         .returnsResultOfExpr ("object")
         .expectingPropertyToBe ("called",
         [
             "preStartService",
             "preStartPlugin",
-            "preStartHandler",
             "startService",
             "startPlugin",
+            "preStartHandler",
             "startHandler",
+            "postStartHandler",
             "postStartService",
-            "postStartPlugin",
-            "postStartHandler"
+            "postStartPlugin"
         ])
         .commit ()
 ;
@@ -247,18 +225,16 @@ test.method ("http.Service", "stop")
             s.class.serviceplugin (new MyPlugin);
             s.createArgs = { handlers: new MyHandler };
         })
-        .before (s => s.object.preStop ())
-        .after (s => s.object.postStop ())
         .returnsResultOfExpr ("object")
         .expectingPropertyToBe ("called",
         [
-            "preStopHandler",
             "preStopService",
             "preStopPlugin",
+            "preStopHandler",
             "stopHandler",
+            "postStopHandler",
             "stopService",
             "stopPlugin",
-            "postStopHandler",
             "postStopService",
             "postStopPlugin"
         ])
@@ -284,9 +260,9 @@ test.method ("http.Service", "dispatch")
             ;
 
             const MyHandler = s.http.defineHandler ("MyHandler")
-                .onPreRun (() => s.called.push ("preRunHandler"))
-                .onPostRun (() => s.called.push ("postRunHandler"))
-                .onRun (() => s.called.push ("runHandler"))
+                .onPreDispatch (() => s.called.push ("preDispatchHandler"))
+                .onPostDispatch (() => s.called.push ("postDispatchHandler"))
+                .onDispatch (() => s.called.push ("dispatchHandler"))
             ;
 
             s.class = s.class.defineSubclass ("MyService")
@@ -300,7 +276,7 @@ test.method ("http.Service", "dispatch")
         })
         .given (Context.new ())
         .returnsResultOfExpr ("args.0")
-        .expectingPropertyToBe ("called", ["preDispatchService", "preDispatchPlugin", "postDispatchService", "postDispatchPlugin"])
+        .expectingPropertyToBe ("called", ["preDispatchService", "preDispatchPlugin"])
         .commit ()
 
     .should ("run the handler if the response was not set by the plugin")
@@ -315,13 +291,13 @@ test.method ("http.Service", "dispatch")
             ;
 
             const MyHandler = s.http.defineHandler ("MyHandler")
-                .onPreRun (() => s.called.push ("preRunHandler"))
-                .onPostRun (() => s.called.push ("postRunHandler"))
-                .onRun (ctx =>
+                .onPreDispatch (() => s.called.push ("preDispatchHandler"))
+                .onPostDispatch (() => s.called.push ("postDispatchHandler"))
+                .onDispatch (ctx =>
                 {
                     ctx.noop ();
 
-                    s.called.push ("runHandler");
+                    s.called.push ("dispatchHandler");
                 })
             ;
 
@@ -342,10 +318,9 @@ test.method ("http.Service", "dispatch")
             "preDispatchPlugin",
             "dispatchService",
             "dispatchPlugin",
-            "preRunHandler",
-            "runHandler",
-            "postDispatchService",
-            "postDispatchPlugin"
+            "preDispatchHandler",
+            "dispatchHandler",
+            "postDispatchHandler"
         ])
         .commit ()
 
@@ -376,9 +351,9 @@ test.method ("http.Service", "upgrade")
             ;
 
             const MyHandler = s.http.defineHandler ("MyHandler")
-                .onPreRun (() => s.called.push ("preRunHandler"))
-                .onPostRun (() => s.called.push ("postRunHandler"))
-                .onRun (() => s.called.push ("runHandler"))
+                .onPreDispatch (() => s.called.push ("preDispatchHandler"))
+                .onPostDispatch (() => s.called.push ("postDispatchHandler"))
+                .onDispatch (() => s.called.push ("dispatchHandler"))
             ;
 
             s.class = s.class.defineSubclass ("MyService")

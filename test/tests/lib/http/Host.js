@@ -70,20 +70,19 @@ test.method ("http.Host", "init")
             s.class.hostplugin (new MyPlugin);
             s.createArgs = { services: new Service () };
         })
-        .before (s => s.object.preInit ())
-        .after (s => s.object.postInit ())
         .returnsResultOfExpr ("object")
         .expectingPropertyToBe ("called",
         [
             "preInitHost",
             "preInitPlugin",
-            "preInitService",
+
             "initHost",
             "initPlugin",
+            "preInitService",
             "initService",
+            "postInitService",
             "postInitHost",
-            "postInitPlugin",
-            "postInitService"
+            "postInitPlugin"
         ])
         .commit ()
 ;
@@ -116,20 +115,18 @@ test.method ("http.Host", "start")
             s.class.hostplugin (new MyPlugin);
             s.createArgs = { services: new Service () };
         })
-        .before (s => s.object.preStart ())
-        .after (s => s.object.postStart ())
         .returnsResultOfExpr ("object")
         .expectingPropertyToBe ("called",
         [
             "preStartHost",
             "preStartPlugin",
-            "preStartService",
             "startHost",
             "startPlugin",
+            "preStartService",
             "startService",
+            "postStartService",
             "postStartHost",
-            "postStartPlugin",
-            "postStartService"
+            "postStartPlugin"
         ])
         .commit ()
 ;
@@ -162,18 +159,16 @@ test.method ("http.Host", "stop")
             s.class.hostplugin (new MyPlugin);
             s.createArgs = { services: new Service () };
         })
-        .before (s => s.object.preStop ())
-        .after (s => s.object.postStop ())
         .returnsResultOfExpr ("object")
         .expectingPropertyToBe ("called",
         [
-            "preStopService",
             "preStopHost",
             "preStopPlugin",
+            "preStopService",
             "stopService",
+            "postStopService",
             "stopHost",
             "stopPlugin",
-            "postStopService",
             "postStopHost",
             "postStopPlugin"
         ])
@@ -263,9 +258,7 @@ test.method ("http.Host", "dispatch")
             "preDispatchHost",
             "preDispatchPlugin",
             "dispatchHost",
-            "dispatchPlugin",
-            "postDispatchHost",
-            "postDispatchPlugin"
+            "dispatchPlugin"
         ])
         .commit ()
 ;

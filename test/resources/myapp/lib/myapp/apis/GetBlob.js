@@ -11,7 +11,7 @@ module.exports = function (nit, http)
         })
         .response ("myapp:BlobReturned")
 
-        .onRun (ctx =>
+        .onDispatch (ctx =>
         {
             let { content } = ctx.request;
 

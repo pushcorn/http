@@ -700,7 +700,7 @@ test.method ("http.Context", "redirect",
 ;
 
 
-test.method ("http.Context", "enter")
+test.method ("http.Context", "push")
     .should ("set the new path and store the old one")
         .up (s => s.createArgs =
         [
@@ -736,7 +736,7 @@ test.method ("http.Context", "enter")
 ;
 
 
-test.method ("http.Context", "leave",
+test.method ("http.Context", "pop",
     {
         createArgs:
         [
@@ -745,7 +745,7 @@ test.method ("http.Context", "leave",
         ]
     })
     .should ("remove the last path override")
-        .before (s => s.object.enter ("/api/users"))
+        .before (s => s.object.push ("/api/users"))
         .expectingPropertyToBe ("object.path", "/users")
         .expectingPropertyToBe ("object.pathOverrides", [])
         .commit ()

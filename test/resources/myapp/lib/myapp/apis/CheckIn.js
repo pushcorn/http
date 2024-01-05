@@ -18,7 +18,7 @@ module.exports = function (nit, http)
                 .parameter ("<location>", Request.Location.name)
             ;
         })
-        .onRun (ctx =>
+        .onDispatch (ctx =>
         {
             ctx.respond ();
         })

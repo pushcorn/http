@@ -73,14 +73,15 @@ test.method ("http.Api", "postNsInvoke", true)
 ;
 
 
-test.method ("http.Api", "run")
+test.method ("http.Api", "dispatch")
     .should ("throw if the returned response was not in the list of allowed responses")
-        .up (s => s.class = s.class.defineSubclass ("MyApi"))
+        .up (s => s.class = s.class.defineSubclass ("MyApi")
+            .onDispatch (ctx => ctx.noop ())
+        )
         .given (Context.new ("GET", "/"))
         .before (s =>
         {
             s.class.response ("http:file");
-            s.args[0].noop ();
         })
         .throws ("error.response_not_allowed")
         .commit ()
@@ -92,7 +93,7 @@ test.method ("http.Api", "run")
         {
             s.class
                 .response ("http:file")
-                .onRun (function ()
+                .onDispatch (function ()
                 {
                     throw new Error ("EXCEPTION");
                 })
@@ -103,7 +104,7 @@ test.method ("http.Api", "run")
 ;
 
 
-test.method ("http.Api", "run")
+test.method ("http.Api", "dispatch")
     .should ("skip if the allowed response was not specified")
         .up (s => s.class = s.class.defineSubclass ("MyApi"))
         .given (Context.new ("GET", "/"))
@@ -111,15 +112,15 @@ test.method ("http.Api", "run")
         {
             s.args[0].noop ();
         })
-        .returnsResultOfExpr ("args.0")
+        .returnsInstanceOf ("MyApi.Context")
         .commit ()
 ;
 
 
-test.method ("http.Api", "run")
+test.method ("http.Api", "dispatch")
     .should ("not send hook result if no response was specified")
         .up (s => s.class = s.class.defineSubclass ("MyApi")
-            .onRun (() => nit.o ({ a: 1 }))
+            .onDispatch (() => nit.o ({ a: 1 }))
         )
         .given (Context.new ("GET", "/"))
         .expectingPropertyToBe ("args.0.response")
@@ -128,7 +129,7 @@ test.method ("http.Api", "run")
     .should ("set the response if the hook returns a value")
         .up (s => s.class = s.class.defineSubclass ("MyApi")
             .response ("http:json")
-            .onRun (() => nit.o ({ a: 1 }))
+            .onDispatch (() => nit.o ({ a: 1 }))
         )
         .given (Context.new ("GET", "/"))
         .expectingPropertyToBe ("args.0.response",
@@ -140,53 +141,48 @@ test.method ("http.Api", "run")
 ;
 
 
-test.method ("http.Api", "catch")
+test.method ("http.Api", "dispatch")
     .should ("send the ValidationFailed response if the error code is error.model_validation_failed")
-        .up (s => s.class = s.class.defineSubclass ("MyApi"))
+        .up (s => s.A = nit.defineClass ("A", "http.Request")
+            .parameter ("<name>", "string")
+        )
+        .up (s => s.class = s.class.defineSubclass ("MyApi")
+            .onDispatch (() => s.A.validate (new s.A))
+        )
         .given (Context.new ("GET", "/"))
-        .before (s =>
-        {
-            const A = nit.defineClass ("A", "http.Request")
-                .parameter ("<name>", "string")
-            ;
-
-            try
-            {
-                A.validate (new A);
-            }
-            catch (e)
-            {
-                s.args[0].error = e;
-            }
-        })
         .expectingPropertyToBeOfType ("args.0.response", "http.responses.ValidationFailed")
-        .expectingPropertyToBeOfType ("args.0.error", Error)
         .commit ()
 
     .should ("skip if the error code is not error.model_validation_failed")
-        .given (Context.new ("GET", "/", null, { error: nit.assign (new Error ("ERR"), { code: "error.invalid_value" }) }))
+        .up (s => s.class = s.class.defineSubclass ("MyApi")
+            .onDispatch (() => { throw nit.assign (new Error ("ERR"), { code: "error.invalid_value" }); })
+        )
+        .given (Context.new ("GET", "/"))
         .throws ("error.invalid_value")
         .commit ()
 
     .should ("cast the error to the response of with same error code")
-        .up (s => s.class = s.class.defineSubclass ("MyApi"))
+        .up (s => s.class = s.class.defineSubclass ("MyApi")
+            .onDispatch (() => { throw nit.assign (new Error ("ERR"), { code: "error.invalid_value" }); })
+        )
         .up (s => s.class.defineResponse ("InvalidValue", InvalidValue =>
         {
             InvalidValue.meta ("code", "error.invalid_value");
         }))
-        .given (Context.new ("GET", "/", null, { error: nit.assign (new Error ("ERR"), { code: "error.invalid_value" }) }))
-        .returns ()
+        .given (Context.new ("GET", "/"))
         .expectingPropertyToBeOfType ("args.0.response", "MyApi.InvalidValue")
         .commit ()
 
     .should ("cast the integer error to the response of with same error status")
-        .up (s => s.class = s.class.defineSubclass ("MyApi"))
+        .up (s => s.class = s.class.defineSubclass ("MyApi")
+            .onDispatch (() => { throw 404; }) // eslint-disable-line no-throw-literal
+        )
         .up (s => s.class.defineResponse ("ItemNotFound", ItemNotFound =>
         {
             ItemNotFound.meta ("status", 404);
         }))
-        .given (Context.new ("GET", "/", null, { error: 404 }))
-        .returns ()
+        .given (Context.new ("GET", "/"))
+        .returnsInstanceOf ("MyApi.Context")
         .expectingPropertyToBeOfType ("args.0.response", "MyApi.ItemNotFound")
         .commit ()
 ;
