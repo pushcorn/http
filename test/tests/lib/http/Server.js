@@ -170,10 +170,10 @@ test.method ("http.Server", "stop")
             "preStopServer",
             "preStopPlugin",
             "preStopHost",
-            "stopHost",
             "preStopService",
             "stopService",
             "postStopService",
+            "stopHost",
             "postStopHost",
             "stopServer",
             "stopPlugin",
@@ -853,7 +853,7 @@ test.object ("http.Server")
                 {
                     Request.parameter ("name", "string");
                 })
-                .onRun (ctx => ctx.respond (`Hello ${ctx.request.name}!`))
+                .onDispatch (ctx => { ctx.respond (`Hello ${ctx.request.name}!`); })
             ;
 
             s.http.defineService ("Service1", "http.services.FileServer");

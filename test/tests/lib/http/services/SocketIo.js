@@ -48,7 +48,7 @@ test.method ("http.services.SocketIo", "handleRequest")
         .up (s =>
         {
             const MyHandler = s.http.defineHandler ("MyHandler")
-                .onRun (() => s.handled = true)
+                .onDispatch (() => { s.handled = true; })
             ;
 
             s.args =
@@ -70,7 +70,7 @@ test.method ("http.services.SocketIo", "handleRequest")
         .up (s =>
         {
             const MyHandler = s.http.defineHandler ("MyHandler")
-                .onRun (() => { throw 402; }) // eslint-disable-line no-throw-literal
+                .onDispatch (() => { throw 402; }) // eslint-disable-line no-throw-literal
             ;
 
             s.args =
@@ -92,7 +92,7 @@ test.method ("http.services.SocketIo", "handleRequest")
         .up (s =>
         {
             const MyHandler = s.http.defineHandler ("MyHandler")
-                .onRun (() => { throw nit.new ("http.responses.RequestFailed"); })
+                .onDispatch (() => { throw nit.new ("http.responses.RequestFailed"); })
             ;
 
             s.args =
@@ -114,7 +114,7 @@ test.method ("http.services.SocketIo", "handleRequest")
         .up (s =>
         {
             const MyHandler = s.http.defineHandler ("MyHandler")
-                .onRun (() => { throw nit.assign (new Error ("ERR"), { code: "UNKNOWN" }); })
+                .onDispatch (() => { throw nit.assign (new Error ("ERR"), { code: "UNKNOWN" }); })
             ;
 
             s.args =
@@ -151,7 +151,7 @@ test.method ("http.services.SocketIo", "shouldHandleRequest")
 ;
 
 
-test.method ("http.services.SocketIo", "preDispatch")
+test.method ("http.services.SocketIo", "dispatch")
     .should ("respond with the client file if serveClient is true")
         .up (s => s.createArgs = { serveClient: true })
         .up (s => s.args = s.Context.new ("GET", "/socket.io/socket.io.js"))
@@ -173,7 +173,7 @@ test.method ("http.services.SocketIo", "preDispatch")
 ;
 
 
-test.method ("http.services.SocketIo", "preStop")
+test.method ("http.services.SocketIo", "stop")
     .should ("close the IO engine")
         .before (s =>
         {
@@ -236,8 +236,7 @@ test.method ("http.services.SocketIo", "start")
             s.object.host = new s.http.Host;
             s.object.host.server = new s.http.Server;
             s.object.host.server.nodeServer = new s.NodeHttpServer;
-
-            await s.object.preStart ();
+            await s.object.init ();
         })
         .after (async (s) =>
         {
@@ -245,7 +244,7 @@ test.method ("http.services.SocketIo", "start")
             let onMessage;
 
             const MyHandler = s.http.defineHandler ("MyHandler")
-                .onRun (ctx => ctx.sendJson ({ b: 2 }))
+                .onDispatch (ctx => { ctx.sendJson ({ b: 2 }); })
             ;
 
             onConnection (

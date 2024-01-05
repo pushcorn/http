@@ -11,7 +11,7 @@ test.method ("http.HandlerService", "forHandler", true)
 ;
 
 
-test.method ("http.HandlerService", "preInit")
+test.method ("http.HandlerService", "init")
     .should ("load handler of the specified type")
         .up (s => s.class = s.http.HandlerService
             .defineSubclass ("test.services.MyService")
