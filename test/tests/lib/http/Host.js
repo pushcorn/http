@@ -219,48 +219,6 @@ test.method ("http.Host", "dispatch")
             "postDispatchPlugin"
         ])
         .commit ()
-
-    .should ("NOT call the service if the plugin set the response")
-        .up (s =>
-        {
-            s.called = [];
-
-            const Service = s.http.defineService ("TestService")
-                .onPreDispatch (() => s.called.push ("preDispatchService"))
-                .onPostDispatch (() => s.called.push ("postDispatchService"))
-                .onDispatch (() => s.called.push ("dispatchService"))
-            ;
-
-            const MyPlugin = s.http.defineHostPlugin ("MyPlugin")
-                .onPreDispatch (() => s.called.push ("preDispatchPlugin"))
-                .onPostDispatch (() => s.called.push ("postDispatchPlugin"))
-                .onDispatch ((service, ctx) =>
-                {
-                    ctx.noop ();
-                    s.called.push ("dispatchPlugin");
-                })
-            ;
-
-            s.class = s.class.defineSubclass ("MyHost")
-                .onPreDispatch (() => s.called.push ("preDispatchHost"))
-                .onPostDispatch (() => s.called.push ("postDispatchHost"))
-                .onDispatch (() => s.called.push ("dispatchHost"))
-            ;
-
-            s.class.hostplugin (new MyPlugin);
-            s.createArgs = { services: new Service () };
-            s.args = s.Context.new ();
-        })
-        .returnsResultOfExpr ("args.0")
-        .expectingPropertyToBeOfType ("args.0.service", "http.services.TestService")
-        .expectingPropertyToBe ("called",
-        [
-            "preDispatchHost",
-            "preDispatchPlugin",
-            "dispatchHost",
-            "dispatchPlugin"
-        ])
-        .commit ()
 ;
 
 

@@ -4,13 +4,13 @@ test.plugin ("http.TemplateLoader", "loadTemplate", { registerPlugin: true, addP
         {
             transforms: nit.new ("http.templatetransforms.Include")
         })
+        .up (s => s.MyHandler = s.http.defineApi ("MyApi")
+            .assetresolver ({ roots: "resources/html" })
+        )
         .before (s => s.args =
         [
             nit.path.join (test.TEST_PROJECT_PATH, "resources/html/page-one.html"),
-            s.http.Context.new (null,
-            {
-                assetResolvers: nit.new ("http.AssetResolver", { roots: "resources/html" })
-            })
+            s.http.Context.new (null, { handler: new s.MyHandler })
         ])
         .returns (nit.trim.text`
             This is page one.
@@ -26,13 +26,13 @@ test.method ("http.TemplateLoader", "load")
         {
             transforms: nit.new ("http.templatetransforms.Include")
         })
+        .up (s => s.MyHandler = s.http.defineApi ("MyApi")
+            .assetresolver ({ roots: "resources/html" })
+        )
         .before (s => s.args =
         [
             nit.path.join (test.TEST_PROJECT_PATH, "resources/html/page-one.html"),
-            s.http.Context.new (null,
-            {
-                assetResolvers: nit.new ("http.AssetResolver", { roots: "resources/html" })
-            })
+            s.http.Context.new (null, { handler: new s.MyHandler })
         ])
         .returns (nit.trim.text`
             This is page one.
@@ -48,10 +48,7 @@ test.method ("http.TemplateLoader", "load")
         .before (s => s.args =
         [
             nit.path.join (test.TEST_PROJECT_PATH, "resources/html/page-1.html"),
-            s.http.Context.new (null,
-            {
-                assetResolvers: nit.new ("http.AssetResolver", { roots: "resources/html" })
-            })
+            s.http.Context.new (null, { handler: new s.MyHandler })
         ])
         .throws ("error.invalid_path")
         .commit ()
@@ -65,10 +62,7 @@ test.method ("http.TemplateLoader", "load")
         .before (s => s.args =
         [
             nit.path.join (test.TEST_PROJECT_PATH, "resources/html/page-1.html"),
-            s.http.Context.new (null,
-            {
-                assetResolvers: nit.new ("http.AssetResolver", { roots: "resources/html" })
-            })
+            s.http.Context.new (null, { handler: new s.MyHandler })
         ])
         .returns ()
         .commit ()
@@ -81,10 +75,7 @@ test.method ("http.TemplateLoader", "load")
         .before (s => s.args =
         [
             nit.path.join (test.TEST_PROJECT_PATH, "resources/html/page-one.html"),
-            s.http.Context.new (null,
-            {
-                assetResolvers: nit.new ("http.AssetResolver", { roots: "resources/html" })
-            })
+            s.http.Context.new (null, { handler: new s.MyHandler })
         ])
         .before (s => s.args[1].responseHeader ("Last-Modified", new Date ()))
         .commit ()

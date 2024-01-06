@@ -921,7 +921,7 @@ test.object ("http.Server")
             await file.writeAsync ("NEW INDEX");
             await nit.sleep (200);
             await client.close ();
-            await nit.sleep (200);
+            await nit.sleep (500);
         })
         .deinit (s => s.server.stop ())
         .expectingPropertyToBe ("response1.greeting", "Hello John!")

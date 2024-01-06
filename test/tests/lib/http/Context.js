@@ -754,11 +754,14 @@ test.method ("http.Context", "pop",
 
 test.method ("http.Context", "resolveAsset")
     .should ("return the absolute path of the given path")
+        .up (s => s.MyHandler = s.http.defineApi ("MyApi")
+            .assetresolver ({ roots: "public" })
+        )
         .up (s => s.createArgs =
         {
             req: new MockIncomingMessage ("GET", "/"),
             res: new MockServerResponse,
-            assetResolvers: { roots: "public" }
+            handler: new s.MyHandler
         })
         .given ("index.html")
         .returns (nit.path.join (test.TEST_PROJECT_PATH, "../public/index.html"))
@@ -769,7 +772,7 @@ test.method ("http.Context", "resolveAsset")
         {
             req: new MockIncomingMessage ("GET", "/"),
             res: new MockServerResponse,
-            assetResolvers: { roots: "public" }
+            handler: new s.MyHandler
         })
         .given ("index2.html")
         .returns ()
@@ -779,23 +782,29 @@ test.method ("http.Context", "resolveAsset")
 
 test.method ("http.Context", "loadTemplate")
     .should ("return the template for the given path")
+        .up (s => s.MyHandler = s.http.defineApi ("MyApi")
+            .assetresolver ({ roots: "public" })
+        )
         .up (s => s.createArgs =
         {
             req: new MockIncomingMessage ("GET", "/"),
             res: new MockServerResponse,
-            assetResolvers: { roots: "public" }
+            handler: new s.MyHandler
         })
         .given ("index.html")
         .returns (/^<!DOCTYPE html>/)
         .commit ()
 
     .should ("use the template loaders to load the template")
+        .up (s => s.MyHandler = s.http.defineApi ("MyApi")
+            .assetresolver ({ roots: "public" })
+            .templateloader ({ extensions: ".html" })
+        )
         .up (s => s.createArgs =
         {
             req: new MockIncomingMessage ("GET", "/"),
             res: new MockServerResponse,
-            assetResolvers: { roots: "public" },
-            templateLoaders: { extensions: ".html" }
+            handler: new s.MyHandler
         })
         .given ("index.html")
         .returns (/^<!DOCTYPE html>/)
@@ -807,10 +816,49 @@ test.method ("http.Context", "loadTemplate")
         {
             req: new MockIncomingMessage ("GET", "/"),
             res: new MockServerResponse,
-            assetResolvers: { roots: "public" }
+            handler: new s.MyHandler
         })
         .given ("index2.html")
         .returns ()
+        .commit ()
+;
+
+
+test.method ("http.Context", "lookupServiceProvider")
+    .should ("search the providers from handler when needed")
+        .up (s => s.MyDb = nit.defineClass ("MyDb"))
+        .up (s => s.MyDbProvider = nit.defineServiceProvider ("test.serviceproviders.MyDb")
+            .provides ("MyDb")
+        )
+        .up (s => s.MyHandler = s.http.defineApi ("MyApi")
+            .serviceprovider ("test:my-db")
+        )
+        .up (s => s.createArgs =
+        {
+            req: new MockIncomingMessage ("GET", "/"),
+            res: new MockServerResponse,
+            handler: new s.MyHandler
+        })
+        .given ("MyDb")
+        .returnsInstanceOf ("test.serviceproviders.MyDb")
+        .commit ()
+
+    .should ("search the providers from server when needed")
+        .up (s => s.MyDb = nit.defineClass ("MyDb"))
+        .up (s => s.MyDbProvider = nit.defineServiceProvider ("test.serviceproviders.MyDb")
+            .provides ("MyDb")
+        )
+        .up (s => s.MyServer = s.http.Server.defineSubclass ("MyServer")
+            .serviceprovider ("test:my-db")
+        )
+        .up (s => s.createArgs =
+        {
+            req: new MockIncomingMessage ("GET", "/"),
+            res: new MockServerResponse,
+            server: new s.MyServer
+        })
+        .given ("MyDb")
+        .returnsInstanceOf ("test.serviceproviders.MyDb")
         .commit ()
 ;
 

@@ -1,14 +1,14 @@
 test.method ("http.templatetransforms.Include", "transform")
     .should ("fetch the included file from the cache")
         .up (s => s.TemplateLoader = nit.require ("http.TemplateLoader"))
+        .up (s => s.MyHandler = s.http.defineApi ("MyApi")
+            .assetresolver ({ roots: "resources/html" })
+        )
         .up (s => s.args =
         [
             new s.TemplateLoader.Context (
             {
-                httpContext: s.http.Context.new ({},
-                {
-                    assetResolvers: { roots: "resources/html" }
-                }),
+                httpContext: s.http.Context.new (null, { handler: new s.MyHandler }),
                 cache: nit.new ("nit.Cache", s.TemplateLoader.CacheEntry.name)
             })
             ,
@@ -18,14 +18,14 @@ test.method ("http.templatetransforms.Include", "transform")
         .commit ()
 
     .should ("throw if the file was not found")
+        .up (s => s.MyHandler = s.http.defineApi ("MyApi")
+            .assetresolver ({ roots: "resources/public" })
+        )
         .up (s => s.args =
         [
             new s.TemplateLoader.Context (
             {
-                httpContext: s.http.Context.new ({},
-                {
-                    assetResolvers: { roots: "resources/public" }
-                }),
+                httpContext: s.http.Context.new (null, { handler: new s.MyHandler }),
                 cache: nit.new ("nit.Cache", s.TemplateLoader.CacheEntry.name)
             })
             ,
