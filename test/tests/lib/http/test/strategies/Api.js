@@ -16,6 +16,18 @@ test.method ("http.test.strategies.Api", "testUp")
 ;
 
 
+test.method ("http.test.strategies.Api", "testBefore")
+    .should ("invoke applicableTo () on the API")
+        .up (s => s.MyApi = s.http.defineApi ("MyApi")
+            .endpoint ("GET /specs/:id")
+        )
+        .up (s => s.createArgs = ["http:my-api", "GET /specs/my"])
+        .before (s => s.object.testUp ())
+        .expectingPropertyToBe ("object.context.pathParams", { id: "my" })
+        .commit ()
+;
+
+
 test.method ("http.test.strategies.Api", "test")
     .should ("call the API's dispatch method with the context")
         .up (s => s.createArgs = "http:get-api-spec")
