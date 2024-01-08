@@ -7,6 +7,7 @@ module.exports = function (nit, http, Self)
         .use ("http.PathParser")
         .use ("http.Request")
         .m ("error.invalid_response_name", "The response name '%{name}' is invalid.")
+        .k ("initContext", "validateRequest", "sendRequest", "buildResponse", "castError", "returnContext")
         .constant ("UNEXPECTED_ERROR_CODE", "error.unexpected_error")
         .categorize ()
         .defineMeta ("url")
@@ -94,7 +95,7 @@ module.exports = function (nit, http, Self)
                 .configureComponentMethod ("send", function (Method)
                 {
                     Method
-                        .before ("initArgs", function (api)
+                        .before (Self.kInitContext, function (api)
                         {
                             var apiClass = api.constructor;
                             var requestClass = apiClass.Request;
@@ -107,11 +108,11 @@ module.exports = function (nit, http, Self)
 
                             this.args = ctx;
                         })
-                        .before ("send.invokeHook", "send.validateRequest", function (api, ctx)
+                        .before ("send.invokeHook", Self.kValidateRequest, function (api, ctx)
                         {
                             return api.constructor.Request.validate (ctx.request);
                         })
-                        .after ("send.invokeHook", "send.sendRequest", function (api, ctx)
+                        .after ("send.invokeHook", Self.kSendRequest, function (api, ctx)
                         {
                             var params = ctx.request.toParams ();
                             var apiClass = api.constructor;
@@ -132,7 +133,7 @@ module.exports = function (nit, http, Self)
                                 data: params.form
                             });
                         })
-                        .before ("postSend.invokeHook", "postSend.buildResponse", function (api, ctx)
+                        .before ("postSend.invokeHook", Self.kBuildResponse, function (api, ctx)
                         {
                             var res = ctx.res = this.result;
                             var responseName = res.headers["X-Response-Name"];
@@ -147,7 +148,7 @@ module.exports = function (nit, http, Self)
 
                             ctx.response = new responseClass (res.result);
                         })
-                        .beforeFailure ("castError", function (api, ctx)
+                        .beforeFailure (Self.kCastError, function (api, ctx)
                         {
                             var error = this.error;
                             var apiClass = api.constructor;
@@ -164,7 +165,7 @@ module.exports = function (nit, http, Self)
 
                             this.error = null;
                         })
-                        .afterComplete (function (api, ctx)
+                        .afterComplete (Self.kReturnContext, function (api, ctx)
                         {
                             return ctx;
                         })
