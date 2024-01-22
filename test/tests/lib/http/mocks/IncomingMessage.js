@@ -6,7 +6,7 @@ test.object ("http.mocks.IncomingMessage")
         .given ("GET", "/users/")
         .expecting ("the object is an instance of http.IncomingMessage", true, s => s.result instanceof http.IncomingMessage)
         .expectingPropertyToBe ("result.pathname", "/users")
-        .expectingPropertyToBe ("result.path", "/users/")
+        .expectingPropertyToBe ("result.path", "/users")
         .commit ()
 
     .should ("add the _read method if the data is provided")
