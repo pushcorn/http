@@ -1,6 +1,6 @@
 {
     "name": "@pushcorn/http",
-    "version": "4.1.0",
+    "version": "5.0.0",
     "description": "The HTTP module for nit.",
     "license": "ISC",
     "files": [
@@ -10,8 +10,8 @@
         "resources/**"
     ],
     "peerDependencies": {
-        "@pushcorn/nit": "github:pushcorn/nit#semver:^4.1.0",
-        "@pushcorn/ui": "github:pushcorn/ui#semver:^1.0.9"
+        "@pushcorn/nit": "github:pushcorn/nit#semver:^5.0.0",
+        "@pushcorn/ui": "github:pushcorn/ui#semver:^5.0.0"
     },
     "peerDependenciesMeta": {
         "@pushcorn/nit": {
@@ -27,8 +27,8 @@
         "negotiator": "0.6.3",
         "qs": "6.11.2",
         "raw-body": "2.5.2",
-        "socket.io": "4.7.2",
-        "socket.io-client": "4.7.2",
+        "socket.io": "4.7.4",
+        "socket.io-client": "4.7.4",
         "vary": "1.1.2"
     }
 }
