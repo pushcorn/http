@@ -459,7 +459,8 @@ test.method ("http.Context", "render",
     .should ("render the view template with the given data")
     .before (s => s.object.service = s.createService (
     {
-        assetresolvers: { roots: "resources/html" }
+        assetresolvers: { roots: "resources/html" },
+        templateloaders: { extensions: ".html" }
     }))
     .given ("file://hello.html", { firstname: "John" })
     .after (s => s.object.writeResponse ())
@@ -785,11 +786,16 @@ test.method ("http.Context", "loadTemplate")
         .up (s => s.MyHandler = s.http.defineApi ("MyApi")
             .assetresolver ({ roots: "public" })
         )
+        .up (s => s.server = nit.new ("http.Server",
+        {
+            templateloaders: { extensions: ".html" }
+        }))
         .up (s => s.createArgs =
         {
             req: new MockIncomingMessage ("GET", "/"),
             res: new MockServerResponse,
-            handler: new s.MyHandler
+            handler: new s.MyHandler,
+            server: s.server
         })
         .given ("index.html")
         .returns (/^<!DOCTYPE html>/)
