@@ -1,6 +1,6 @@
 {
     "name": "@pushcorn/http",
-    "version": "5.1.0",
+    "version": "5.1.1",
     "description": "The HTTP module for nit.",
     "license": "ISC",
     "files": [
@@ -22,7 +22,7 @@
         }
     },
     "dependencies": {
-        "chokidar": "3.5.3",
+        "chokidar": "3.6.0",
         "formidable": "3.5.1",
         "negotiator": "0.6.3",
         "qs": "6.11.2",
